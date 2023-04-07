@@ -7,3 +7,11 @@
 .venv
 .pytest_cache
 __pycache__
+# Node Stuff
+yarn.lock
+node_modules/
+artifacts/
+build/
+cache/
+typechain-types/
+*.log
