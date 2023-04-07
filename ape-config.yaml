@@ -7,15 +7,21 @@ plugins:
   - name: solidity
   - name: hardhat
   - name: etherscan
+  - name: bsc
 solidity:
   import_remapping:
     - "@openzeppelin/contracts=OpenZeppelin/4.8.2"
 compiler:
   ignore_files:
+    - "*package.json"
+    - "*package-lock.json"
+    - "*tsconfig.json"
+    - "*yarn.lock"
+    - "*node_modules/*"
     - "*README.md"
 hardhat:
   fork:
     ethereum:
       mainnet:
         upstream_provider: "https://bscrpc.com"
-        block_number: 27072900
+        block_number: 26976870
