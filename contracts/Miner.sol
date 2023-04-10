@@ -2,18 +2,16 @@
 pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IClimb.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 
 contract BinanceWealthMatrix is Ownable {
-    using SafeMath for uint256; // TODO: remove this
     uint256 public constant EGGS_TO_HATCH_1MINERS = 2592000;
     uint256 public constant MAX_VAULT_TIME = 43200; // 12 hours
     address public constant USDT_ADDRESS =
         0x55d398326f99059fF775485246999027B3197955;
-    IUniswapV2Router02 _router =
+    IUniswapV2Router02 public _router =
         IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
     uint256 public constant PSN = 10000;
     uint256 public constant PSNH = 5000;
@@ -29,6 +27,8 @@ contract BinanceWealthMatrix is Ownable {
     mapping(address => uint256) public lastHatch;
     mapping(address => address) public referrals;
     uint256 public marketEggs;
+
+    event EggsBought(uint amount);
 
     constructor(address _climbToken) {
         CLIMB = IClimb(_climbToken);
@@ -54,16 +54,20 @@ contract BinanceWealthMatrix is Ownable {
         );
         uint256 newBalance = USDT.balanceOf(address(this));
         uint256 usdtAmount = SafeMath.sub(newBalance, previousBalance);
-        uint256 ccbalance = CLIMB.balanceOf(address(this));
+        uint256 ccbalance = CLIMB.balanceOf(address(this)); // @audit - constant calls require a lot of gas
         USDT.approve(address(CLIMB), usdtAmount);
-        CLIMB.buy(usdtAmount);
+        CLIMB.buy(usdtAmount); // @audit - this could return the amount of climb bought to simplify the code a bit.
         uint256 amount = SafeMath.sub(
             CLIMB.balanceOf(address(this)),
             ccbalance
         );
 
-        uint256 eggsBought = calculateEggBuy(amount, newBalance);
-        eggsBought = SafeMath.sub(eggsBought, devFee(eggsBought));
+        // uint256 eggsBought = calculateEggBuy(amount, newBalance); // @audit - so eggs are bought with USDT? amount is in CLIMB and newBalance is in USDT
+        uint256 eggsBought = calculateEggBuy(amount, ccbalance.add(amount)); // @audit-ok this is part of the fix
+        emit EggsBought(eggsBought);
+        eggsBought = SafeMath.sub(eggsBought, devFee(eggsBought)); // @audit - dev fee is 5% of eggs bought
+        // @audit - these functions are constantly calling global variables, which are expensive. It would be better to store them in memory.
+        // This step only makes sense if claimedEggs[msg.sender] is not 0
         claimedEggs[msg.sender] = SafeMath.add(
             claimedEggs[msg.sender],
             eggsBought
@@ -89,16 +93,21 @@ contract BinanceWealthMatrix is Ownable {
         if (ref == msg.sender) {
             ref = address(0);
         }
+        // @audit - if previous was true, then this code is irrelevant
         if (
             referrals[msg.sender] == address(0) &&
             referrals[msg.sender] != msg.sender
         ) {
             referrals[msg.sender] = ref;
         }
+        // @audit - referrals get 10% "free" eggs
         claimedEggs[referrals[msg.sender]] = SafeMath.add(
             claimedEggs[referrals[msg.sender]],
             SafeMath.div(eggsBought, 10)
         );
+        // @audit - The issue here is that the "DEV" fee only accounts for 5% of the eggs bought, but the 10% referral bonus is not accounted for.
+        // @audit-ok - So since the giveaway is in eggs and not in miners, maybe the issue is not that bad.
+        // Recommended: take 10% of referral bonus and add it to the dev fee (if ref exists) if there is no ref, then just take 5% of eggs bought.
 
         emit Invest(msg.sender, amount);
     }
@@ -106,6 +115,7 @@ contract BinanceWealthMatrix is Ownable {
     // Invest with USDT
     function investInMatrix(address ref, uint256 usdtAmount) public {
         require(initialized, "Matrix is not initialized");
+        // @audit - this is unnecessary, it will fail regardless if the allowance is not enough
         require(
             USDT.allowance(msg.sender, address(this)) >= usdtAmount,
             "Insufficient allowance"
@@ -120,6 +130,7 @@ contract BinanceWealthMatrix is Ownable {
         uint256 amount = SafeMath.sub(newBalance, previousBalance);
         uint256 eggsBought = calculateEggBuy(amount, newBalance);
         eggsBought = SafeMath.sub(eggsBought, devFee(eggsBought));
+        emit EggsBought(eggsBought);
         claimedEggs[msg.sender] = SafeMath.add(
             claimedEggs[msg.sender],
             eggsBought
