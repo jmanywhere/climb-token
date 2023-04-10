@@ -374,6 +374,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         return _handleMinting(recipient, difference, prevTokenAmount, oldPrice);
     }
 
+    // @audit - instead of returning BOOL which is useless, return the amount of tokens that were minted
     /** Stake Underlying Tokens and Deposits CLIMB in Sender's Address, Must Have Prior Approval */
     function _stakeUnderlyingAsset(
         uint256 numTokens,
@@ -491,22 +492,26 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         bool takeFee = !isFeeExempt[msg.sender];
 
         // find the number of tokens we should mint to keep up with the current price
+        /// @audit - CLIMB_SUPPLY * USDT RECEIVED / USDT PREVIOUSLY HELD
         uint256 tokensToMintNoTax = _totalSupply.mul(received).div(
             prevTokenAmount
         );
 
         // apply fee to minted tokens to inflate price relative to total supply
         uint256 tokensToMint = takeFee
-            ? tokensToMintNoTax.mul(mintFee).div(feeDenominator)
+            ? tokensToMintNoTax.mul(mintFee).div(feeDenominator) // @audit-ok - check the comments for fees, since they're BS
             : tokensToMintNoTax.sub(100, "100 Asset Minimum For Fee Exemption");
 
+        /// @audit - This is an unnecesary check, check should be "received > 0" if < 100 it should revert on it's own
         // revert if under 1
         require(tokensToMint > 0, "Must Purchase At Least One Climb Token");
 
         if (takeFee) {
+            // @audit come back to this since it's very confusing, What does the devshare have to do with the liquidityshare?
             // difference
-            uint256 taxTaken = tokensToMintNoTax.sub(tokensToMint);
+            uint256 taxTaken = tokensToMintNoTax.sub(tokensToMint); // @audit-ok - ok so this is why the fee is reversed to 95% instead of it being 5%
             // allocate dev share
+            // @audit - honestly what a fucking roundabout way of taking 1% of fees can definitely improve this.
             uint256 allocation = taxTaken.mul(devShare).div(
                 devShare.add(liquidityShare)
             );
@@ -522,9 +527,11 @@ contract ClimbToken is IERC20, ReentrancyGuard {
     }
 
     /** Mints Tokens to the Receivers Address */
+    /// TODO SIGH SO MUCH SAFEMATH
     function _mint(address receiver, uint256 amount) private {
         _balances[receiver] = _balances[receiver].add(amount);
         _totalSupply = _totalSupply.add(amount);
+        /// @audit - dafuq is _volumeFor?
         _volumeFor[receiver] += amount;
         emit Transfer(address(0), receiver, amount);
     }
