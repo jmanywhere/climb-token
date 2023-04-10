@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -20,7 +19,6 @@ import "./interfaces/IUniswapV2Router02.sol";
  */
 
 contract ClimbToken is IERC20, ReentrancyGuard {
-    using SafeMath for uint256; // TODO - remove this for gas savings
     using Address for address;
 
     // token data
@@ -158,10 +156,13 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         address recipient,
         uint256 amount
     ) external override returns (bool) {
-        _allowances[sender][msg.sender] = _allowances[sender][msg.sender].sub(
-            amount,
-            "Insufficient Allowance"
+        uint currentAllowance = _allowances[sender][msg.sender];
+        require(
+            currentAllowance >= amount,
+            "Transfer amount exceeds allowance"
         );
+        _allowances[sender][msg.sender] = currentAllowance - amount;
+
         return _transferFrom(sender, recipient, amount);
     }
 
@@ -199,15 +200,13 @@ contract ClimbToken is IERC20, ReentrancyGuard {
 
         if (takeFee) {
             // allocate dev share
-            uint256 allocation = tax.mul(devShare).div(
-                devShare.add(liquidityShare)
-            );
+            uint256 allocation = (tax * devShare) / (devShare + liquidityShare);
             // mint to dev
             _mint(dev, allocation);
         }
 
         // give reduced amount to receiver
-        _balances[recipient] = _balances[recipient].add(tAmount);
+        _balances[recipient] += tAmount;
 
         // burn the tax
         if (tax > 0) {
