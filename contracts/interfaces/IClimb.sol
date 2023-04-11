@@ -8,15 +8,19 @@ interface IClimb is IERC20 {
 
     function burn() external payable;
 
-    function sell(uint256 amount) external;
+    function sell(uint256 amount, address stable) external;
 
-    function sell(address recipient, uint256 amount) external;
+    function sell(address recipient, uint256 amount, address stable) external;
 
     function getUnderlyingAsset() external returns (address);
 
-    function buy(uint256 numTokens) external returns (bool);
+    function buy(uint256 numTokens, address stable) external returns (bool);
 
-    function buy(address recipient, uint256 numTokens) external returns (bool);
+    function buy(
+        address recipient,
+        uint256 numTokens,
+        address stable
+    ) external returns (uint256);
 
     function eraseHoldings(uint256 nHoldings) external;
 
