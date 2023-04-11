@@ -7,12 +7,24 @@ import "./interfaces/IClimb.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 
 contract BinanceWealthMatrix is Ownable {
+    struct Mining {
+        uint256 miners;
+        uint256 totalInvested; // This is in CLIMB
+        uint256 totalRedeemed; // This is in CLIMB
+        uint256 eggsToClaim;
+        uint256 lastInteraction;
+        address referrer;
+    }
+    mapping(address => bool) public acceptedStables;
+    mapping(address => Mining) public user;
+
     uint256 public constant EGGS_TO_HATCH_1MINERS = 2592000;
     uint256 public constant MAX_VAULT_TIME = 43200; // 12 hours
     address public constant USDT_ADDRESS =
         0x55d398326f99059fF775485246999027B3197955;
-    IUniswapV2Router02 public _router =
-        IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+    address public constant BUSD_ADDRESS =
+        0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
+
     uint256 public constant PSN = 10000;
     uint256 public constant PSNH = 5000;
     bool public initialized = false;
@@ -28,244 +40,121 @@ contract BinanceWealthMatrix is Ownable {
     mapping(address => address) public referrals;
     uint256 public marketEggs;
 
-    event EggsBought(uint amount);
-
     constructor(address _climbToken) {
         CLIMB = IClimb(_climbToken);
-        climb = payable(_climbToken);
         feeReceiver = CLIMB.owner();
-    }
-
-    // Invest with BNB
-    function investInMatrix(address ref) public payable {
-        require(initialized, "Matrix is not initialized");
-        uint256 previousBalance = USDT.balanceOf(address(this));
-        address[] memory path = new address[](2);
-        path[0] = _router.WETH();
-        path[1] = address(USDT);
-        uint256 minout = _router.getAmountsOut(msg.value, path)[1].mul(995).div(
-            1000
-        );
-        _router.swapExactETHForTokens{value: msg.value}(
-            minout,
-            path,
-            address(this),
-            block.timestamp
-        );
-        uint256 newBalance = USDT.balanceOf(address(this));
-        uint256 usdtAmount = SafeMath.sub(newBalance, previousBalance);
-        uint256 ccbalance = CLIMB.balanceOf(address(this)); // @audit - constant calls require a lot of gas
-        USDT.approve(address(CLIMB), usdtAmount);
-        CLIMB.buy(usdtAmount); // @audit - this could return the amount of climb bought to simplify the code a bit.
-        uint256 amount = SafeMath.sub(
-            CLIMB.balanceOf(address(this)),
-            ccbalance
-        );
-
-        // uint256 eggsBought = calculateEggBuy(amount, newBalance); // @audit - so eggs are bought with USDT? amount is in CLIMB and newBalance is in USDT
-        uint256 eggsBought = calculateEggBuy(amount, ccbalance.add(amount)); // @audit-ok this is part of the fix
-        emit EggsBought(eggsBought);
-        eggsBought = SafeMath.sub(eggsBought, devFee(eggsBought)); // @audit - dev fee is 5% of eggs bought
-        // @audit - these functions are constantly calling global variables, which are expensive. It would be better to store them in memory.
-        // This step only makes sense if claimedEggs[msg.sender] is not 0
-        claimedEggs[msg.sender] = SafeMath.add(
-            claimedEggs[msg.sender],
-            eggsBought
-        );
-
-        uint256 newMiners = SafeMath.div(
-            claimedEggs[msg.sender],
-            EGGS_TO_HATCH_1MINERS
-        );
-        hatcheryMiners[msg.sender] = SafeMath.add(
-            hatcheryMiners[msg.sender],
-            newMiners
-        );
-
-        claimedEggs[msg.sender] = 0;
-        totalInvested[msg.sender] = SafeMath.add(
-            totalInvested[msg.sender],
-            amount
-        );
-        lastHatch[msg.sender] = block.timestamp;
-
-        // send referral eggs
-        if (ref == msg.sender) {
-            ref = address(0);
-        }
-        // @audit - if previous was true, then this code is irrelevant
-        if (
-            referrals[msg.sender] == address(0) &&
-            referrals[msg.sender] != msg.sender
-        ) {
-            referrals[msg.sender] = ref;
-        }
-        // @audit - referrals get 10% "free" eggs
-        claimedEggs[referrals[msg.sender]] = SafeMath.add(
-            claimedEggs[referrals[msg.sender]],
-            SafeMath.div(eggsBought, 10)
-        );
-        // @audit - The issue here is that the "DEV" fee only accounts for 5% of the eggs bought, but the 10% referral bonus is not accounted for.
-        // @audit-ok - So since the giveaway is in eggs and not in miners, maybe the issue is not that bad.
-        // Recommended: take 10% of referral bonus and add it to the dev fee (if ref exists) if there is no ref, then just take 5% of eggs bought.
-
-        emit Invest(msg.sender, amount);
+        acceptedStables[USDT_ADDRESS] = true;
+        acceptedStables[BUSD_ADDRESS] = true;
     }
 
     // Invest with USDT
-    function investInMatrix(address ref, uint256 usdtAmount) public {
+    function investInMatrix(
+        address ref,
+        address _stable,
+        uint256 stableAmount
+    ) public {
         require(initialized, "Matrix is not initialized");
-        // @audit - this is unnecessary, it will fail regardless if the allowance is not enough
+        require(acceptedStables[_stable], "Not accepted");
+        IERC20 stable = IERC20(_stable);
+
+        // @audit this requires 2 transfers, let's try to make it just one by calling CLAIM `BUY FOR`
+        // BUY FOR should only be allowed by matrix contracts or other allowed contracts
+        // ----------------------------
+        stable.transferFrom(msg.sender, address(this), stableAmount);
         require(
-            USDT.allowance(msg.sender, address(this)) >= usdtAmount,
-            "Insufficient allowance"
+            stable.balanceOf(address(this)) > 0,
+            "Stable token not received"
         );
-
-        bool s = USDT.transferFrom(msg.sender, address(this), usdtAmount);
-        require(s, "Transfer USDT failed");
         uint256 previousBalance = CLIMB.balanceOf(address(this));
-        USDT.approve(address(CLIMB), usdtAmount);
-        CLIMB.buy(address(this), usdtAmount);
-        uint256 newBalance = CLIMB.balanceOf(address(this));
-        uint256 amount = SafeMath.sub(newBalance, previousBalance);
-        uint256 eggsBought = calculateEggBuy(amount, newBalance);
-        eggsBought = SafeMath.sub(eggsBought, devFee(eggsBought));
-        emit EggsBought(eggsBought);
-        claimedEggs[msg.sender] = SafeMath.add(
-            claimedEggs[msg.sender],
-            eggsBought
-        );
+        stable.approve(address(CLIMB), stableAmount);
+        // TODO Make sure BUY returns the amount of CLIMB bought
+        uint newBalance = CLIMB.buy(address(this), stableAmount, _stable);
+        // ----------------------------
+        // ----------------------------
+        uint256 amount = newBalance - previousBalance;
+        uint256 eggsBought = calculateEggBuy(amount, previousBalance);
 
-        uint256 newMiners = SafeMath.div(
-            claimedEggs[msg.sender],
-            EGGS_TO_HATCH_1MINERS
-        );
-        hatcheryMiners[msg.sender] = SafeMath.add(
-            hatcheryMiners[msg.sender],
-            newMiners
-        );
+        Mining storage miner = user[msg.sender];
 
-        claimedEggs[msg.sender] = 0;
-        totalInvested[msg.sender] = SafeMath.add(
-            totalInvested[msg.sender],
-            amount
-        );
-        lastHatch[msg.sender] = block.timestamp;
+        eggsBought -= devFee(eggsBought);
+        eggsBought += miner.eggsToClaim;
+        miner.eggsToClaim = 0;
+
+        uint256 newMiners = eggsBought / EGGS_TO_HATCH_1MINERS;
+        miner.miners += newMiners;
+
+        miner.totalInvested += amount;
+        miner.lastInteraction = block.timestamp;
 
         // send referral eggs
-        if (ref == msg.sender) {
-            ref = address(0);
+        _checkAndSetRef(ref, miner);
+        if (miner.referrer != address(0)) {
+            user[miner.referrer].eggsToClaim += (eggsBought / 10);
         }
-        if (
-            referrals[msg.sender] == address(0) &&
-            referrals[msg.sender] != msg.sender
-        ) {
-            referrals[msg.sender] = ref;
-        }
-        claimedEggs[referrals[msg.sender]] = SafeMath.add(
-            claimedEggs[referrals[msg.sender]],
-            SafeMath.div(eggsBought, 10)
-        );
-
+        // boost market to nerf miners hoarding (MINER)
+        marketEggs += eggsBought / 5;
         emit Invest(msg.sender, amount);
     }
 
+    function _checkAndSetRef(address _ref, Mining storage miner) private {
+        if (_ref == msg.sender) {
+            _ref = address(0);
+        }
+        if (miner.referrer == address(0) && _ref != address(0)) {
+            miner.referrer = _ref;
+        }
+    }
+
     // Reinvest in Matrix
-    function reinvestInMatrix(address ref) public {
+    function reinvestInMatrix(address ref, address _stable) public {
         require(initialized, "Matrix is not initialized");
-        if (ref == msg.sender) {
-            ref = address(0);
-        }
-        if (
-            referrals[msg.sender] == address(0) &&
-            referrals[msg.sender] != msg.sender
-        ) {
-            referrals[msg.sender] = ref;
-        }
+        require(acceptedStables[_stable], "Not accepted");
+        Mining storage miner = user[msg.sender];
+        _checkAndSetRef(ref, miner);
+
         uint256 eggsUsed = getMyEggs();
         uint256 eggsValue = calculateEggSell(eggsUsed);
         uint256 fee = devFee(eggsValue);
+        eggsValue -= fee;
 
-        uint256 newMiners = SafeMath.div(
-            SafeMath.sub(eggsUsed, devFee(eggsUsed)),
-            EGGS_TO_HATCH_1MINERS
-        );
-        hatcheryMiners[msg.sender] = SafeMath.add(
-            hatcheryMiners[msg.sender],
-            newMiners
-        );
-        claimedEggs[msg.sender] = 0;
-        totalInvested[msg.sender] = SafeMath.add(
-            totalInvested[msg.sender],
-            SafeMath.sub(eggsValue, fee)
-        );
-        lastHatch[msg.sender] = block.timestamp;
+        uint256 newMiners = (eggsUsed - devFee(eggsUsed)) /
+            EGGS_TO_HATCH_1MINERS;
+
+        miner.miners += newMiners;
+        miner.eggsToClaim = 0;
+        miner.totalInvested += eggsValue;
+        miner.lastInteraction = block.timestamp;
 
         // handle the fee
-        uint256 dFee = SafeMath.div(fee, 5);
-        uint256 burnFee = SafeMath.sub(fee, dFee);
-        CLIMB.burn(burnFee);
-        CLIMB.sell(address(feeReceiver), dFee);
+        uint256 dFee = fee / 5;
+        fee -= dFee;
+
+        CLIMB.burn(fee);
+        CLIMB.sell(address(feeReceiver), dFee, _stable);
 
         // send referral eggs
-        claimedEggs[referrals[msg.sender]] = SafeMath.add(
-            claimedEggs[referrals[msg.sender]],
-            SafeMath.div(eggsUsed, 10)
-        );
+        claimedEggs[referrals[msg.sender]] += (eggsUsed / 10);
 
         // boost market to nerf miners hoarding
-        marketEggs = SafeMath.add(marketEggs, SafeMath.div(eggsUsed, 5));
-
+        marketEggs += (eggsUsed / 5);
+        // Actual eggs value reinvested
         emit Reinvest(msg.sender, eggsValue);
     }
 
-    // Withdraw USDT
-    function matrixRedeem() public {
+    // Withdraw Stable
+    function matrixRedeem(address _preferredStable) public {
         require(initialized, "Matrix is not initialized");
+        require(acceptedStables[_preferredStable], "Not accepted");
+        Mining storage miner = user[msg.sender];
         uint256 hasEggs = getMyEggs();
         uint256 eggsValue = calculateEggSell(hasEggs);
-        claimedEggs[msg.sender] = 0;
-        lastHatch[msg.sender] = block.timestamp;
-        marketEggs = SafeMath.add(marketEggs, hasEggs);
-        totalRedeemed[msg.sender] = SafeMath.add(
-            totalRedeemed[msg.sender],
-            eggsValue
-        );
-        CLIMB.sell(msg.sender, eggsValue);
-        emit Redeem(msg.sender, eggsValue);
-    }
-
-    // Withdraw BNB
-    function matrixRedeemBNB() public {
-        require(initialized, "Matrix is not initialized");
-        uint256 hasEggs = getMyEggs();
-        uint256 eggsValue = calculateEggSell(hasEggs);
-        claimedEggs[msg.sender] = 0;
-        lastHatch[msg.sender] = block.timestamp;
-        marketEggs = SafeMath.add(marketEggs, hasEggs);
-        uint256 previousAmount = USDT.balanceOf(address(this));
-        CLIMB.sell(eggsValue);
-        uint256 newAmount = USDT.balanceOf(address(this));
-        uint256 amount = SafeMath.sub(newAmount, previousAmount);
-        totalRedeemed[msg.sender] = SafeMath.add(
-            totalRedeemed[msg.sender],
-            eggsValue
-        );
-        address[] memory path = new address[](2);
-        path[0] = address(USDT);
-        path[1] = _router.WETH();
-        uint256 minOut = _router.getAmountsOut(amount, path)[1].mul(995).div(
-            1000
-        );
-        USDT.approve(address(_router), amount);
-        uint256[] memory amountsOut = _router.swapExactTokensForTokens(
-            amount,
-            minOut,
-            path,
-            msg.sender,
-            block.timestamp
-        );
-        require(amountsOut[1] > 0, "Swap failed");
+        miner.eggsToClaim = 0;
+        miner.lastInteraction = block.timestamp;
+        miner.totalRedeemed += eggsValue;
+        marketEggs += hasEggs;
+        // TODO - add a check for the preferred stable
+        // todo - ADD the argument for preferred stable in CLIMB token
+        CLIMB.sell(msg.sender, eggsValue, _preferredStable);
         emit Redeem(msg.sender, eggsValue);
     }
 
@@ -276,20 +165,7 @@ contract BinanceWealthMatrix is Ownable {
         uint256 bs
     ) public pure returns (uint256) {
         //(PSN*bs)/(PSNH+((PSN*rs+PSNH*rt)/rt));
-        return
-            SafeMath.div(
-                SafeMath.mul(PSN, bs),
-                SafeMath.add(
-                    PSNH,
-                    SafeMath.div(
-                        SafeMath.add(
-                            SafeMath.mul(PSN, rs),
-                            SafeMath.mul(PSNH, rt)
-                        ),
-                        rt
-                    )
-                )
-            );
+        return (PSN * bs) / (PSNH + ((PSN * rs + PSNH * rt) / rt));
     }
 
     function calculateEggSell(uint256 eggs) public view returns (uint256) {
@@ -310,7 +186,7 @@ contract BinanceWealthMatrix is Ownable {
     }
 
     function devFee(uint256 amount) public pure returns (uint256) {
-        return SafeMath.div(SafeMath.mul(amount, 5), 100);
+        return (amount * 5) / 100;
     }
 
     function initializeMatrix() public onlyOwner {
@@ -329,19 +205,15 @@ contract BinanceWealthMatrix is Ownable {
     }
 
     function getMyEggs() public view returns (uint256) {
-        return
-            SafeMath.add(
-                claimedEggs[msg.sender],
-                getEggsSinceLastHatch(msg.sender)
-            );
+        return claimedEggs[msg.sender] + getEggsSinceLastHatch(msg.sender);
     }
 
     function getEggsSinceLastHatch(address adr) public view returns (uint256) {
         uint256 secondsPassed = min(
             MAX_VAULT_TIME,
-            SafeMath.sub(block.timestamp, lastHatch[adr])
+            (block.timestamp - lastHatch[adr])
         );
-        return SafeMath.mul(secondsPassed, hatcheryMiners[adr]);
+        return secondsPassed * hatcheryMiners[adr];
     }
 
     function min(uint256 a, uint256 b) private pure returns (uint256) {
