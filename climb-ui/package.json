@@ -9,9 +9,17 @@
     "start": "next start"
   },
   "dependencies": {
+    "@next/font": "^13.3.0",
+    "@web3modal/ethereum": "^2.2.2",
+    "@web3modal/react": "^2.2.2",
+    "classnames": "^2.3.2",
+    "daisyui": "^2.51.5",
+    "ethers": "^5",
     "next": "^13.2.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-icons": "^4.8.0",
+    "wagmi": "^0.12.10",
     "zod": "^3.21.4"
   },
   "devDependencies": {
