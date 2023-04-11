@@ -69,13 +69,16 @@ const Header = () => {
       <div
         className={classNames(
           showNav ? "left-0" : "-left-full",
-          "z-5 fixed bottom-0 left-0 top-0 flex w-full bg-black/20 backdrop-blur-sm transition-all duration-200 ease-in-out md:hidden"
+          "fixed bottom-0 top-0 flex w-full bg-black/20 backdrop-blur-sm transition-all duration-200 ease-in-out md:hidden"
         )}
-        onClick={() => setShowNav(false)}
+        onClick={(e) => {
+          e.preventDefault();
+          setShowNav(false);
+        }}
       >
         <nav
           className={classNames(
-            "flex w-[80%] flex-col bg-base-100 transition-all duration-300 ease-in-out"
+            "flex w-[70%] flex-col bg-base-100 transition-all duration-300 ease-in-out"
           )}
           onClick={(e) => e.stopPropagation()}
         >
