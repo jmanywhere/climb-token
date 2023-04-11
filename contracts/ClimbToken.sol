@@ -17,31 +17,40 @@ import "./interfaces/IUniswapV2Router02.sol";
  * Sell this token to redeem underlying BUSD Tokens
  * Price is calculated as a ratio between Total Supply and underlying asset quantity in Contract
  */
+// TODO implement a swap between STABLE TOKENS
+// TODO token receives both USDT and BUSD
 
 contract ClimbToken is IERC20, ReentrancyGuard {
     using Address for address;
 
+    struct Stable {
+        uint balance;
+        bool accepted;
+    }
+
     // token data
-    string constant _name = "Climb";
-    string constant _symbol = "CLIMB";
-    uint8 constant _decimals = 18;
-    uint256 constant precision = 10 ** 18;
+    string public constant name = "ClimbV2";
+    string public constant symbol = "CLIMBv2";
+    uint8 public constant decimals = 18;
+    // Math constants
+    uint256 constant precision = 1 ether;
 
     // lock to Matrix contract
     mapping(address => bool) public isMatrix;
 
     // 1 CLIMB Starting Supply
-    uint256 _totalSupply = 1 * 10 ** _decimals;
+    uint256 public totalSupply = 1 ether;
 
     // balances
-    mapping(address => uint256) _balances;
-    mapping(address => mapping(address => uint256)) _allowances;
+    mapping(address => uint256) private _balances;
+    mapping(address => mapping(address => uint256)) private _allowances;
+    mapping(address => Stable) public stables;
 
     // Fees
     uint256 public mintFee = 950; // 5.0% buy fee
     uint256 public sellFee = 950; // 5.0% sell fee
     uint256 public transferFee = 950; // 5.0% transfer fee
-    uint256 public constant feeDenominator = 10 ** 3;
+    uint256 public constant feeDenominator = 1000;
 
     uint256 public devShare = 100; // 1%
     uint256 public liquidityShare = 400; // 4%
@@ -95,19 +104,15 @@ contract ClimbToken is IERC20, ReentrancyGuard {
 
         // allocate one token to dead wallet to ensure total supply never reaches 0
         address dead = 0x000000000000000000000000000000000000dEaD;
-        _balances[address(this)] = (_totalSupply - 1);
+        _balances[address(this)] = (totalSupply - 1);
         _balances[dead] = 1;
 
         // ownership
         _owner = msg.sender;
 
         // emit allocations
-        emit Transfer(address(0), address(this), (_totalSupply - 1));
+        emit Transfer(address(0), address(this), (totalSupply - 1));
         emit Transfer(address(0), dead, 1);
-    }
-
-    function totalSupply() external view override returns (uint256) {
-        return _totalSupply;
     }
 
     function balanceOf(address account) public view override returns (uint256) {
@@ -119,18 +124,6 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         address spender
     ) external view override returns (uint256) {
         return _allowances[holder][spender];
-    }
-
-    function name() public pure returns (string memory) {
-        return _name;
-    }
-
-    function symbol() public pure returns (string memory) {
-        return _symbol;
-    }
-
-    function decimals() public pure returns (uint8) {
-        return _decimals;
     }
 
     function approve(
@@ -186,17 +179,14 @@ contract ClimbToken is IERC20, ReentrancyGuard {
 
         // amount to give recipient
         uint256 tAmount = takeFee
-            ? amount.mul(transferFee).div(feeDenominator)
+            ? (amount * transferFee) / feeDenominator
             : amount;
 
         // tax taken from transfer
-        uint256 tax = amount.sub(tAmount);
-
+        uint256 tax = amount - tAmount;
+        require(_balances[sender] >= amount, "Insufficient Balance");
         // subtract from sender
-        _balances[sender] = _balances[sender].sub(
-            amount,
-            "Insufficient Balance"
-        );
+        _balances[sender] -= amount;
 
         if (takeFee) {
             // allocate dev share
@@ -210,7 +200,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
 
         // burn the tax
         if (tax > 0) {
-            _totalSupply = _totalSupply.sub(tax);
+            totalSupply -= tax;
             emit Transfer(sender, address(0), tax);
         }
 
@@ -228,7 +218,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         // Transfer Event
         emit Transfer(sender, recipient, tAmount);
         // Emit The Price Change
-        emit PriceChange(oldPrice, currentPrice, _totalSupply);
+        emit PriceChange(oldPrice, currentPrice, totalSupply);
         return true;
     }
 
@@ -265,7 +255,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
 
     /** Sells Without Including Decimals */
     function sellInWholeTokenAmounts(uint256 amount) external nonReentrant {
-        _sell(amount.mul(10 ** _decimals), msg.sender);
+        _sell(amount * 10 ** decimals, msg.sender);
     }
 
     /** Deletes CLIMB Tokens Sent To Contract */
@@ -285,7 +275,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         // burn tokens from sender + supply
         _burn(msg.sender, burnAmount);
         // Emit Price Difference
-        emit PriceChange(oldPrice, _calculatePrice(), _totalSupply);
+        emit PriceChange(oldPrice, _calculatePrice(), totalSupply);
         // Emit Call
         emit ErasedHoldings(msg.sender, burnAmount);
     }
@@ -298,7 +288,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
     function burn() external payable {
         uint256 prevAmount = _balances[address(this)];
         _purchase(address(this));
-        uint256 amount = _balances[address(this)].sub(prevAmount);
+        uint256 amount = _balances[address(this)] - prevAmount;
         _burn(address(this), amount);
     }
 
@@ -316,7 +306,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         );
         uint256 prevAmount = _balances[address(this)];
         _stakeUnderlyingAsset(underlyingAmount, address(this));
-        uint256 amount = _balances[address(this)].sub(prevAmount);
+        uint256 amount = _balances[address(this)] - prevAmount;
         _burn(address(this), amount);
     }
 
@@ -333,7 +323,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
             newPrice >= oldPrice,
             "Price Must Rise For Transaction To Conclude"
         );
-        emit PriceChange(oldPrice, newPrice, _totalSupply);
+        emit PriceChange(oldPrice, newPrice, totalSupply);
     }
 
     /** Purchases CLIMB Token and Deposits Them in Recipient's Address */
@@ -348,21 +338,21 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         // previous amount of underlying asset before we received any
         uint256 prevTokenAmount = IERC20(_underlying).balanceOf(address(this));
         // minimum output amount
-        uint256 minOut = _router
-        .getAmountsOut(msg.value, path)[1].mul(_tokenSlippage).div(1000);
+        uint256 minOut = (_router.getAmountsOut(msg.value, path)[1] *
+            _tokenSlippage) / 1000;
         // buy Token with the BNB received
         _router.swapExactETHForTokens{value: msg.value}(
             minOut,
             path,
             address(this),
-            block.timestamp.add(30)
+            block.timestamp + 30
         );
         // balance of underlying asset after swap
         uint256 currentTokenAmount = IERC20(_underlying).balanceOf(
             address(this)
         );
         // number of Tokens we have purchased
-        uint256 difference = currentTokenAmount.sub(prevTokenAmount);
+        uint256 difference = currentTokenAmount - prevTokenAmount;
         // if this is the first purchase, use new amount
         prevTokenAmount = prevTokenAmount == 0
             ? currentTokenAmount
@@ -411,7 +401,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
             address(this)
         );
         // number of Tokens we have purchased
-        uint256 difference = currentTokenAmount.sub(prevTokenAmount);
+        uint256 difference = currentTokenAmount - prevTokenAmount;
         // ensure nothing unexpected happened
         require(
             difference <= numTokens && difference > 0,
@@ -437,16 +427,15 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         uint256 oldPrice = _calculatePrice();
         // fee exempt
         bool takeFee = !isFeeExempt[msg.sender];
-
+        uint tokensToSwap;
         // tokens post fee to swap for underlying asset
-        uint256 tokensToSwap = takeFee
-            ? tokenAmount.mul(sellFee).div(feeDenominator)
-            : tokenAmount.sub(100, "100 Asset Minimum For Fee Exemption");
+        if (!takeFee) {
+            require(tokenAmount > 100, "Minimum of 100");
+            tokensToSwap = tokenAmount - 100;
+        } else tokensToSwap = (tokenAmount * (sellFee)) / feeDenominator;
 
         // value of taxed tokens
-        uint256 amountUnderlyingAsset = (tokensToSwap.mul(oldPrice)).div(
-            precision
-        );
+        uint256 amountUnderlyingAsset = (tokensToSwap * oldPrice) / precision;
         // require above zero value
         require(
             amountUnderlyingAsset > 0,
@@ -458,11 +447,10 @@ contract ClimbToken is IERC20, ReentrancyGuard {
 
         if (takeFee) {
             // difference
-            uint256 taxTaken = tokenAmount.sub(tokensToSwap);
+            uint256 taxTaken = tokenAmount - tokensToSwap;
             // allocate dev share
-            uint256 allocation = taxTaken.mul(devShare).div(
-                devShare.add(liquidityShare)
-            );
+            uint256 allocation = (taxTaken * devShare) /
+                (devShare + liquidityShare);
             // mint to dev
             _mint(dev, allocation);
         }
@@ -492,14 +480,12 @@ contract ClimbToken is IERC20, ReentrancyGuard {
 
         // find the number of tokens we should mint to keep up with the current price
         /// @audit - CLIMB_SUPPLY * USDT RECEIVED / USDT PREVIOUSLY HELD
-        uint256 tokensToMintNoTax = _totalSupply.mul(received).div(
-            prevTokenAmount
-        );
+        uint256 tokensToMintNoTax = (totalSupply * received) / prevTokenAmount;
 
         // apply fee to minted tokens to inflate price relative to total supply
         uint256 tokensToMint = takeFee
-            ? tokensToMintNoTax.mul(mintFee).div(feeDenominator) // @audit-ok - check the comments for fees, since they're BS
-            : tokensToMintNoTax.sub(100, "100 Asset Minimum For Fee Exemption");
+            ? (tokensToMintNoTax * mintFee) / feeDenominator // @audit-ok - check the comments for fees, since they're BS
+            : tokensToMintNoTax - 100;
 
         /// @audit - This is an unnecesary check, check should be "received > 0" if < 100 it should revert on it's own
         // revert if under 1
@@ -508,12 +494,11 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         if (takeFee) {
             // @audit come back to this since it's very confusing, What does the devshare have to do with the liquidityshare?
             // difference
-            uint256 taxTaken = tokensToMintNoTax.sub(tokensToMint); // @audit-ok - ok so this is why the fee is reversed to 95% instead of it being 5%
+            uint256 taxTaken = tokensToMintNoTax - tokensToMint; // @audit-ok - ok so this is why the fee is reversed to 95% instead of it being 5%
             // allocate dev share
             // @audit - honestly what a fucking roundabout way of taking 1% of fees can definitely improve this.
-            uint256 allocation = taxTaken.mul(devShare).div(
-                devShare.add(liquidityShare)
-            );
+            uint256 allocation = (taxTaken * devShare) /
+                (devShare + liquidityShare);
             // mint to dev
             _mint(dev, allocation);
         }
@@ -528,8 +513,8 @@ contract ClimbToken is IERC20, ReentrancyGuard {
     /** Mints Tokens to the Receivers Address */
     /// TODO SIGH SO MUCH SAFEMATH
     function _mint(address receiver, uint256 amount) private {
-        _balances[receiver] = _balances[receiver].add(amount);
-        _totalSupply = _totalSupply.add(amount);
+        _balances[receiver] = _balances[receiver] + amount;
+        totalSupply = totalSupply + amount;
         /// @audit - dafuq is _volumeFor?
         _volumeFor[receiver] += amount;
         emit Transfer(address(0), receiver, amount);
@@ -537,11 +522,9 @@ contract ClimbToken is IERC20, ReentrancyGuard {
 
     /** Burns Tokens from the Receivers Address */
     function _burn(address receiver, uint256 amount) private {
-        _balances[receiver] = _balances[receiver].sub(
-            amount,
-            "Insufficient Balance"
-        );
-        _totalSupply = _totalSupply.sub(amount, "Negative Supply");
+        require(_balances[receiver] >= amount, "Insufficient Balance");
+        _balances[receiver] -= amount;
+        totalSupply -= amount;
         _volumeFor[receiver] += amount;
         emit Transfer(receiver, address(0), amount);
     }
@@ -557,7 +540,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
             // Emit Collection
             emit GarbageCollected(bal);
             // Emit Price Difference
-            emit PriceChange(oldPrice, _calculatePrice(), _totalSupply);
+            emit PriceChange(oldPrice, _calculatePrice(), totalSupply);
         }
     }
 
@@ -577,25 +560,25 @@ contract ClimbToken is IERC20, ReentrancyGuard {
 
     /** Precision Of $0.001 */
     function price() external view returns (uint256) {
-        return _calculatePrice().mul(10 ** 3).div(precision);
+        return (_calculatePrice() * 10 ** 3) / precision;
     }
 
     /** Returns the Current Price of 1 Token */
     function _calculatePrice() internal view returns (uint256) {
         uint256 tokenBalance = IERC20(_underlying).balanceOf(address(this));
-        return (tokenBalance.mul(precision)).div(_totalSupply);
+        return (tokenBalance * precision) / totalSupply;
     }
 
     /** Returns the value of your holdings before the sell fee */
     function getValueOfHoldings(address holder) public view returns (uint256) {
-        return _balances[holder].mul(_calculatePrice()).div(precision);
+        return (_balances[holder] * _calculatePrice()) / precision;
     }
 
     /** Returns the value of your holdings after the sell fee */
     function getValueOfHoldingsAfterTax(
         address holder
     ) external view returns (uint256) {
-        return getValueOfHoldings(holder).mul(sellFee).div(feeDenominator);
+        return (getValueOfHoldings(holder) * sellFee) / feeDenominator;
     }
 
     /** Returns The Address of the Underlying Asset */
@@ -616,7 +599,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
     function ActivateToken() external onlyOwner {
         require(!Token_Activated, "Already Activated Token");
         Token_Activated = true;
-        emit TokenActivated(_totalSupply, _calculatePrice(), block.timestamp);
+        emit TokenActivated(totalSupply, _calculatePrice(), block.timestamp);
     }
 
     /** Excludes Contract From Fees */
@@ -648,7 +631,7 @@ contract ClimbToken is IERC20, ReentrancyGuard {
         uint256 newDevShare,
         uint256 newLiquidityShare
     ) external onlyOwner {
-        require(newDevShare.add(newLiquidityShare) <= 995, "invalid shares");
+        require(newDevShare + newLiquidityShare <= 995, "invalid shares");
         devShare = newDevShare;
         liquidityShare = newLiquidityShare;
         emit UpdateShares(devShare, liquidityShare);
