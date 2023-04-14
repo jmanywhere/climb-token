@@ -15,3 +15,4 @@ build/
 cache/
 typechain-types/
 *.log
+.vscode/
