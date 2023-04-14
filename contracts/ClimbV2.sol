@@ -22,13 +22,15 @@ import "./interfaces/IUniswapV2Router02.sol";
 // TODO implement a swap between STABLE TOKENS
 // TODO token receives both USDT and BUSD
 
-contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
+contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     using Address for address;
 
     struct Stable {
         uint balance;
+        uint8 index;
         uint8 decimals;
         bool accepted;
+        bool setup;
     }
 
     // token data
@@ -44,13 +46,14 @@ contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
     mapping(address => Stable) public stables;
+    address[] public currentStables;
 
     // 1 CLIMB Starting Supply
     uint256 public totalSupply = 1 ether;
     // Fees
     uint256 public mintFee = 950; // 5.0% buy fee
     uint256 public sellFee = 950; // 5.0% sell fee
-    uint256 public transferFee = 950; // 5.0% transfer fee
+    uint256 public transferFee = 50; // 5.0% transfer fee
     uint256 public constant feeDenominator = 1000;
 
     uint256 public devShare = 100; // 1%
@@ -95,12 +98,14 @@ contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
         _balances[address(this)] = (totalSupply - 1);
         _balances[dead] = 1;
 
+        require(_stables.length > 0, "No stables provided");
+
         for (uint8 i = 0; i < _stables.length; i++) {
-            stables[_stables[i]] = Stable(
-                0,
-                IERC20Metadata(_stables[i]).decimals(),
-                true
-            );
+            setStableToken(_stables[i], true);
+            if (i == 0) {
+                require(_stables[i] != address(0), "Invalid stable");
+                stables[_stables[i]].balance = 1 ether;
+            }
         }
         // emit allocations
         emit Transfer(address(0), address(this), (totalSupply - 1));
@@ -157,60 +162,48 @@ contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
         address recipient,
         uint256 amount
     ) internal returns (bool) {
-        // make standard checks
+        // Zero Address Check
         require(
-            recipient != address(0) && sender != address(0),
-            "Transfer To Zero Address"
+            sender != address(0) && recipient != address(0),
+            "Tx to/from Zero"
         );
-        require(amount > 0, "Transfer amount must be greater than zero");
-        // track price change
+        // Amounts Check
+        require(
+            amount > 0 && _balances[sender] >= amount,
+            "Insufficient Balance"
+        );
+        // Track old price and sender volume
         uint256 oldPrice = _calculatePrice();
-
-        // fee exempt
-        bool takeFee = !(isFeeExempt[sender] || isFeeExempt[recipient]);
-
-        // amount to give recipient
-        uint256 tAmount = takeFee
-            ? (amount * transferFee) / feeDenominator
-            : amount;
-
-        // tax taken from transfer
-        uint256 tax = amount - tAmount;
-        require(_balances[sender] >= amount, "Insufficient Balance");
-        // subtract from sender
+        // Update Sender balance and volume
         _balances[sender] -= amount;
-
-        if (takeFee) {
-            // allocate dev share
-            uint256 allocation = (tax * devShare) / sharesDenominator;
-            // mint to dev
-            _mint(dev, allocation);
-        }
-
-        // give reduced amount to receiver
-        _balances[recipient] += tAmount;
-
-        // burn the tax
-        if (tax > 0) {
-            totalSupply -= tax;
-            emit Transfer(sender, address(0), tax);
-        }
-
-        // volume for
         _volumeFor[sender] += amount;
-        _volumeFor[recipient] += tAmount;
 
-        // Price difference
-        uint256 currentPrice = _calculatePrice();
-        // Require Current Price >= Last Price
-        require(
-            currentPrice >= oldPrice,
-            "Price Must Rise For Transaction To Conclude"
-        );
-        // Transfer Event
-        emit Transfer(sender, recipient, tAmount);
-        // Emit The Price Change
-        emit PriceChange(oldPrice, currentPrice, totalSupply);
+        // Does Fee apply
+        if (!(isFeeExempt[sender] || isFeeExempt[recipient])) {
+            // Transfer Fee
+            uint fee = (amount * transferFee) / feeDenominator;
+            // Update actual transfer amount
+            amount -= fee;
+            // caculate devFee and liquidityFee
+            uint devFee = (fee * devShare) / sharesDenominator;
+            fee -= devFee;
+            totalSupply -= fee;
+            _balances[dev] += devFee;
+            emit Transfer(sender, address(0), fee);
+            emit Transfer(sender, dev, devFee);
+
+            // Make sure price is updated since totalSupply changed
+            // Here were simply reusing the fee variable
+            fee = _calculatePrice();
+            require(fee >= oldPrice, "Price MUST increase when fees apply");
+            emit PriceChange(oldPrice, fee, totalSupply);
+        }
+        // update recipiente balance and volume
+        _balances[recipient] += amount;
+        _volumeFor[recipient] += amount;
+
+        emit Transfer(sender, recipient, amount);
+
         return true;
     }
 
@@ -219,7 +212,7 @@ contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
         uint256 numTokens,
         address _stable
     ) external nonReentrant returns (uint) {
-        return _stakeUnderlyingAsset(numTokens, msg.sender);
+        return _buyToken(numTokens, msg.sender, _stable);
     }
 
     /** Receives Underlying Tokens and Deposits CLIMB in Recipient's Address, Must Have Prior Approval */
@@ -228,7 +221,19 @@ contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
         uint256 numTokens,
         address _stable
     ) external nonReentrant returns (uint) {
-        return _stakeUnderlyingAsset(numTokens, recipient);
+        return _buyToken(numTokens, recipient, _stable);
+    }
+
+    function buyFor(
+        address recipient,
+        uint256 numTokens,
+        address _stable
+    ) external nonReentrant returns (uint) {
+        // @audit - CHECK THIS PLZ
+        // TODO implementation pending
+        // TODO only matrix
+        // TODO check that _stable was received and then proceed to mint
+        return _buyToken(numTokens, recipient, _stable);
     }
 
     /** Sells CLIMB Tokens And Deposits Underlying Asset Tokens into Seller's Address */
@@ -287,14 +292,17 @@ contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
     }
 
     /** Burns CLIMB Token with Underlying, Must Have Prior Approval */
-    function burnWithUnderlying(uint256 underlyingAmount) external {
+    function burnWithUnderlying(
+        uint256 underlyingAmount,
+        address _stable
+    ) external {
         IERC20(_underlying).transferFrom(
             msg.sender,
             address(this),
             underlyingAmount
         );
         uint256 prevAmount = _balances[address(this)];
-        _stakeUnderlyingAsset(underlyingAmount, address(this));
+        _buyToken(underlyingAmount, address(this), _stable);
         uint256 amount = _balances[address(this)] - prevAmount;
         _burn(address(this), amount);
     }
@@ -315,25 +323,24 @@ contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
         emit PriceChange(oldPrice, newPrice, totalSupply);
     }
 
+    function _transferInStable(address _stable, uint256 amount) internal {
+        require(stables[_stable].accepted, "Stable Not Accepted");
+        IERC20(_stable).transferFrom(msg.sender, address(this), amount);
+    }
+
     // @audit - instead of returning BOOL which is useless, return the amount of tokens that were minted
-    /** Stake Underlying Tokens and Deposits CLIMB in Sender's Address, Must Have Prior Approval */
-    function _stakeUnderlyingAsset(
+    /// @notice - This function is used to "STAKE" the stable token and calls to create CLIMB tokens
+    function _buyToken(
         uint256 numTokens,
-        address recipient
+        address recipient,
+        address _stable // Stable token to be used to buy
     ) internal returns (uint) {
         // make sure it's not locked
         require(
             Token_Activated || msg.sender == owner() || isMatrix[msg.sender],
             "CLIMB is Currently Locked Inside the Matrix"
         );
-        // user's underlying balance
-        uint256 userTokenBalance = IERC20(_underlying).balanceOf(msg.sender);
-        // ensure user has enough to send
-        //@audit - Just need to check that numTokens is > 0. Although I think adding a minimum buy amount is a good idea
-        require(
-            userTokenBalance > 0 && numTokens <= userTokenBalance,
-            "Insufficient Balance"
-        );
+
         // calculate price change
         uint256 oldPrice = _calculatePrice();
         // previous amount of underlying asset before any are received
@@ -509,6 +516,8 @@ contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
 
     /** Returns the Current Price of 1 Token */
     function _calculatePrice() internal view returns (uint256) {
+        // get balance of accepted stables
+
         uint256 tokenBalance = IERC20(_underlying).balanceOf(address(this));
         return (tokenBalance * precision) / totalSupply;
     }
@@ -600,7 +609,55 @@ contract ClimbTokeV2 is IClimb, ReentrancyGuard, Ownable {
         emit UpdateFees(sellFee, mintFee, transferFee);
     }
 
+    // @audit - this needs pretty thorough testing, but feels like it'll be ok
+    function setStableToken(address _stable, bool exempt) public onlyOwner {
+        require(_stable != address(0), "Zero");
+        Stable storage stable = stables[_stable];
+        require(stable.accepted != exempt, "Already set");
+        stable.accepted = exempt;
+        IERC20Metadata stableToken = IERC20Metadata(_stable);
+        require(stable.balance == 0, "Balance not zero");
+        if (!exempt && stable.setup) {
+            // If deleted && setup
+            if (currentStables[0] == _stable) {
+                require(currentStables.length > 1, "Not enough stables");
+            }
+            if (stable.index < currentStables.length - 1) {
+                currentStables[stable.index] = currentStables[
+                    currentStables.length - 1
+                ]; // substitute current index element with last element
+            }
+            currentStables.pop(); // remove last element
+            stables[currentStables[stable.index]].index = stable.index;
+            stable.index = 0;
+            stable.setup = false;
+            stable.accepted = false;
+        } else if (exempt && !stable.setup) {
+            // If added && not setup
+            stable.index = uint8(currentStables.length);
+            currentStables.push(_stable);
+            stable.setup = true;
+            stable.balance = stableToken.balanceOf(address(this));
+            stable.accepted = true;
+        }
+
+        emit SetStableToken(_stable, exempt);
+    }
+
+    function allStables() external view returns (address[] memory) {
+        return currentStables;
+    }
+
     function exchangeTokens(address _from, address _to) external onlyOwner {
-        // TODO @audit
+        require(
+            stables[_from].accepted && stables[_to].accepted,
+            "Invalid stables"
+        );
+        IERC20 fromToken = IERC20(_from);
+        uint fromBalance = fromToken.balanceOf(address(this));
+        // TODO the balance actually goes to the router of our choice
+        fromToken.transfer(owner(), fromBalance);
+        stables[_from].balance = 0;
+        // TODO @audit - INCOMPLETE
     }
 }
