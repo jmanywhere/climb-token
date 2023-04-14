@@ -30,7 +30,7 @@ contract BinanceWealthMatrix is Ownable {
     bool public initialized = false;
     address public feeReceiver;
     address payable climb;
-    IClimb CLIMB = IClimb(address(0));
+    IOwnableClimb public immutable CLIMB;
     IERC20 USDT = IERC20(USDT_ADDRESS);
     mapping(address => uint256) public hatcheryMiners;
     mapping(address => uint256) public totalInvested;
@@ -41,7 +41,7 @@ contract BinanceWealthMatrix is Ownable {
     uint256 public marketEggs;
 
     constructor(address _climbToken) {
-        CLIMB = IClimb(_climbToken);
+        CLIMB = IOwnableClimb(_climbToken);
         feeReceiver = CLIMB.owner();
         acceptedStables[USDT_ADDRESS] = true;
         acceptedStables[BUSD_ADDRESS] = true;
