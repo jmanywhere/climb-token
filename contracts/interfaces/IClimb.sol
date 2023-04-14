@@ -10,9 +10,18 @@ interface IClimb is IERC20 {
 
     function sell(address recipient, uint256 amount, address stable) external;
 
+    // These functions are used to buy CLIMB with STABLE, STABLE will need to be approved for transfer in for this contract.
     function buy(uint256 numTokens, address stable) external returns (uint256);
 
     function buy(
+        address recipient,
+        uint256 numTokens,
+        address stable
+    ) external returns (uint256);
+
+    /// @notice although this function has the same parameters as the BUY functions, only Matrix contracts can call this function
+    /// @dev the Matrix contract MUST send STABLE tokens to this contract before calling this function. Without this function, the Matrix contract would have to receive STABLE tokens from the user, then approve STABLE tokens to the contract to buy CLIMB token and then CLIMB would need to transfer STABLE back to themselves. This function saves gas and time.
+    function buyFor(
         address recipient,
         uint256 numTokens,
         address stable
@@ -55,4 +64,9 @@ interface IClimb is IERC20 {
         address recipient
     );
     event TokenPurchased(uint256 assetsReceived, address recipient);
+    event SetStableToken(address stable, bool exempt);
+}
+
+interface IOwnableClimb is IClimb {
+    function owner() external returns (address);
 }
