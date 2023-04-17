@@ -32,7 +32,11 @@ interface IClimb is IERC20 {
     function volumeFor(address wallet) external view returns (uint256);
 
     ///@notice this function is called by OWNER only and is used to exchange the complete balance in STABLE1 for STABLE2
-    function exchangeTokens(address stable1, address stable2) external;
+    function exchangeTokens(
+        address stable1,
+        address stable2,
+        address _router
+    ) external;
 
     ///////////////////////////////////
     //////        EVENTS        ///////
@@ -65,6 +69,12 @@ interface IClimb is IERC20 {
     );
     event TokenPurchased(uint256 assetsReceived, address recipient);
     event SetStableToken(address stable, bool exempt);
+    event ExchangeToken(
+        address _from,
+        address _to,
+        uint256 amountFROM,
+        uint256 amountTO
+    );
 }
 
 interface IOwnableClimb is IClimb {
