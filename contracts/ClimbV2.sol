@@ -62,18 +62,11 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
 
     address public dev = 0xB66D12b3b51010ac743df691Fe781f6a5E303261;
 
-    // Underlying Asset
-    address public constant _underlying =
-        0x55d398326f99059fF775485246999027B3197955; // USDT
-
     // fee exemption for utility
     mapping(address => bool) public isFeeExempt;
 
     // volume for each recipient
     mapping(address => uint256) _volumeFor;
-
-    // PCS Router
-    IUniswapV2Router02 _router;
 
     // token purchase slippage maximum
     uint256 public _tokenSlippage = 995;
@@ -83,15 +76,9 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
 
     // initialize some stuff
     constructor(address[] memory _stables) {
-        // router
-        _router = IUniswapV2Router02(
-            0x10ED43C718714eb63d5aA57B78B54704E256024E // PCS V2
-        );
-
         // fee exempt this + owner + router for LP injection
         isFeeExempt[address(this)] = true;
         isFeeExempt[msg.sender] = true;
-        isFeeExempt[address(_router)] = true;
 
         // allocate one token to dead wallet to ensure total supply never reaches 0
         address dead = 0x000000000000000000000000000000000000dEaD;
@@ -238,7 +225,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
 
     /** Sells CLIMB Tokens And Deposits Underlying Asset Tokens into Seller's Address */
     function sell(uint256 tokenAmount, address _stable) external nonReentrant {
-        _sell(tokenAmount, msg.sender);
+        _sell(tokenAmount, msg.sender, _stable);
     }
 
     /** Sells CLIMB Tokens And Deposits Underlying Asset Tokens into Recipients's Address */
@@ -247,17 +234,20 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         uint256 tokenAmount,
         address _stable
     ) external nonReentrant {
-        _sell(tokenAmount, recipient);
+        _sell(tokenAmount, recipient, _stable);
     }
 
     /** Sells All CLIMB Tokens And Deposits Underlying Asset Tokens into Seller's Address */
-    function sellAll() external nonReentrant {
-        _sell(_balances[msg.sender], msg.sender);
+    function sellAll(address _stable) external nonReentrant {
+        _sell(_balances[msg.sender], msg.sender, _stable);
     }
 
     /** Sells Without Including Decimals */
-    function sellInWholeTokenAmounts(uint256 amount) external nonReentrant {
-        _sell(amount * 10 ** decimals, msg.sender);
+    function sellInWholeTokenAmounts(
+        uint256 amount,
+        address _stable
+    ) external nonReentrant {
+        _sell(amount * 10 ** decimals, msg.sender, _stable);
     }
 
     /** Deletes CLIMB Tokens Sent To Contract */
@@ -296,7 +286,8 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         uint256 underlyingAmount,
         address _stable
     ) external {
-        IERC20(_underlying).transferFrom(
+        require(stables[_stable].accepted, "Stable Not Active");
+        IERC20(_stable).transferFrom(
             msg.sender,
             address(this),
             underlyingAmount
@@ -340,25 +331,20 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
             Token_Activated || msg.sender == owner() || isMatrix[msg.sender],
             "CLIMB is Currently Locked Inside the Matrix"
         );
-
+        require(stables[_stable].accepted, "Stable Not Active");
+        IERC20 token = IERC20(_stable);
         // calculate price change
         uint256 oldPrice = _calculatePrice();
         // previous amount of underlying asset before any are received
-        uint256 prevTokenAmount = IERC20(_underlying).balanceOf(address(this));
+        uint256 prevTokenAmount = token.balanceOf(address(this));
         // move asset into this contract
-        bool success = IERC20(_underlying).transferFrom(
-            msg.sender,
-            address(this),
-            numTokens
-        );
+        bool success = token.transferFrom(msg.sender, address(this), numTokens);
         // @audit-ok Immediately check the return value of the transferFrom call
         require(success, "Failure On Token TransferFrom");
         // balance of underlying asset after transfer
         //-------------
         /// @audit - This feels like a shit ton of code for absolutely no gain whatsoever
-        uint256 currentTokenAmount = IERC20(_underlying).balanceOf(
-            address(this)
-        );
+        uint256 currentTokenAmount = token.balanceOf(address(this));
         // number of Tokens we have purchased
         uint256 difference = currentTokenAmount - prevTokenAmount;
         // ensure nothing unexpected happened
@@ -380,8 +366,14 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     }
 
     /** Sells CLIMB Tokens And Deposits Underlying Asset Tokens into Recipients's Address */
-    function _sell(uint256 tokenAmount, address recipient) internal {
+    function _sell(
+        uint256 tokenAmount,
+        address recipient,
+        address _stable
+    ) internal {
         require(tokenAmount > 0 && _balances[msg.sender] >= tokenAmount);
+        require(stables[_stable].accepted, "Stable Not Active");
+        IERC20 token = IERC20(_stable);
         // calculate price change
         uint256 oldPrice = _calculatePrice();
         // fee exempt
@@ -414,10 +406,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         }
 
         // send Tokens to Seller
-        bool successful = IERC20(_underlying).transfer(
-            recipient,
-            amountUnderlyingAsset
-        );
+        bool successful = token.transfer(recipient, amountUnderlyingAsset);
         // ensure Tokens were delivered
         require(successful, "Underlying Asset Transfer Failure");
         // Requires The Price of CLIMB to Increase in order to complete the transaction
@@ -517,8 +506,13 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     /** Returns the Current Price of 1 Token */
     function _calculatePrice() internal view returns (uint256) {
         // get balance of accepted stables
-
-        uint256 tokenBalance = IERC20(_underlying).balanceOf(address(this));
+        uint256 tokenBalance = 0;
+        for (uint8 i = 0; i < currentStables.length; i++) {
+            Stable storage stable = stables[currentStables[i]];
+            tokenBalance +=
+                (stable.balance * 1 ether) /
+                (10 ** stable.decimals); // adjust so everything is 18 decimals
+        }
         return (tokenBalance * precision) / totalSupply;
     }
 
@@ -616,12 +610,12 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         require(stable.accepted != exempt, "Already set");
         stable.accepted = exempt;
         IERC20Metadata stableToken = IERC20Metadata(_stable);
-        require(stable.balance == 0, "Balance not zero");
         if (!exempt && stable.setup) {
             // If deleted && setup
             if (currentStables[0] == _stable) {
                 require(currentStables.length > 1, "Not enough stables");
             }
+            require(stable.balance == 0, "Balance not zero");
             if (stable.index < currentStables.length - 1) {
                 currentStables[stable.index] = currentStables[
                     currentStables.length - 1
@@ -648,16 +642,34 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         return currentStables;
     }
 
-    function exchangeTokens(address _from, address _to) external onlyOwner {
+    function exchangeTokens(
+        address _from,
+        address _to,
+        address _router
+    ) external onlyOwner {
         require(
             stables[_from].accepted && stables[_to].accepted,
             "Invalid stables"
         );
+
         IERC20 fromToken = IERC20(_from);
+        IERC20 toToken = IERC20(_to);
         uint fromBalance = fromToken.balanceOf(address(this));
-        // TODO the balance actually goes to the router of our choice
-        fromToken.transfer(owner(), fromBalance);
+        uint toBalance = toToken.balanceOf(address(this));
+        fromToken.approve(_router, fromBalance);
+        address[] memory path = new address[](2);
+        path[0] = _from;
+        path[1] = _to;
+        IUniswapV2Router02(_router).swapExactTokensForTokens(
+            fromBalance,
+            0,
+            path,
+            address(this),
+            block.timestamp
+        );
+        uint newToBalance = toToken.balanceOf(address(this));
+        require(newToBalance > stables[_to].balance, "No tokens received");
+        stables[_to].balance = newToBalance;
         stables[_from].balance = 0;
-        // TODO @audit - INCOMPLETE
     }
 }
