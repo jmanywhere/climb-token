@@ -21,7 +21,7 @@ compiler:
     - "*README.md"
 hardhat:
   fork:
-    ethereum:
+    bsc:
       mainnet:
         upstream_provider: "https://bscrpc.com"
         block_number: 26976870
