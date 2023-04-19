@@ -38,7 +38,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     string public constant symbol = "CLIMBv2";
     uint8 public constant decimals = 18;
     // Math constants
-    uint256 constant precision = 1 ether;
+    uint256 constant PRECISION = 1 ether;
 
     // lock to Matrix contract
     mapping(address => bool) public isMatrix;
@@ -51,7 +51,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     // 1 CLIMB Starting Supply
     uint256 public totalSupply = 1 ether;
     // Fees
-    uint256 public mintFee = 950; // 5.0% buy fee
+    uint256 public mintFee = 50; // 5.0% buy fee
     uint256 public sellFee = 950; // 5.0% sell fee
     uint256 public transferFee = 50; // 5.0% transfer fee
     uint256 public constant feeDenominator = 1000;
@@ -60,7 +60,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     uint256 public liquidityShare = 400; // 4%
     uint256 public sharesDenominator = 500; // 5%
 
-    address public dev = 0xB66D12b3b51010ac743df691Fe781f6a5E303261;
+    address public dev;
 
     // fee exemption for utility
     mapping(address => bool) public isFeeExempt;
@@ -75,7 +75,8 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     bool Token_Activated;
 
     // initialize some stuff
-    constructor(address[] memory _stables) {
+    constructor(address[] memory _stables, address _dev) {
+        dev = _dev;
         // fee exempt this + owner + router for LP injection
         isFeeExempt[address(this)] = true;
         isFeeExempt[msg.sender] = true;
@@ -157,7 +158,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         // Amounts Check
         require(
             amount > 0 && _balances[sender] >= amount,
-            "Insufficient Balance"
+            "Invalid amount or balance"
         );
         // Track old price and sender volume
         uint256 oldPrice = _calculatePrice();
@@ -199,6 +200,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         uint256 numTokens,
         address _stable
     ) external nonReentrant returns (uint) {
+        _transferInStable(_stable, numTokens);
         return _buyToken(numTokens, msg.sender, _stable);
     }
 
@@ -208,6 +210,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         uint256 numTokens,
         address _stable
     ) external nonReentrant returns (uint) {
+        _transferInStable(_stable, numTokens);
         return _buyToken(numTokens, recipient, _stable);
     }
 
@@ -218,7 +221,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     ) external nonReentrant returns (uint) {
         // @audit - CHECK THIS PLZ
         // TODO implementation pending
-        // TODO only matrix
+        require(isMatrix[msg.sender], "Only matrix allowed");
         // TODO check that _stable was received and then proceed to mint
         return _buyToken(numTokens, recipient, _stable);
     }
@@ -329,40 +332,30 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         // make sure it's not locked
         require(
             Token_Activated || msg.sender == owner() || isMatrix[msg.sender],
-            "CLIMB is Currently Locked Inside the Matrix"
+            "Locked Inside the Matrix"
         );
-        require(stables[_stable].accepted, "Stable Not Active");
+        require(numTokens > 0, "> 0 please");
+        Stable storage stable = stables[_stable];
         IERC20 token = IERC20(_stable);
         // calculate price change
+        // @audit-ok - This uses non synced values so it's fine to call after tokens have been transferred in
         uint256 oldPrice = _calculatePrice();
-        // previous amount of underlying asset before any are received
-        uint256 prevTokenAmount = token.balanceOf(address(this));
-        // move asset into this contract
-        bool success = token.transferFrom(msg.sender, address(this), numTokens);
-        // @audit-ok Immediately check the return value of the transferFrom call
-        require(success, "Failure On Token TransferFrom");
-        // balance of underlying asset after transfer
-        //-------------
-        /// @audit - This feels like a shit ton of code for absolutely no gain whatsoever
-        uint256 currentTokenAmount = token.balanceOf(address(this));
-        // number of Tokens we have purchased
-        uint256 difference = currentTokenAmount - prevTokenAmount;
-        // ensure nothing unexpected happened
-        require(
-            difference <= numTokens && difference > 0,
-            "Failure on Token Evaluation"
-        );
-        // if this is the first purchase, use new amount
-        // @audit - check what the fuck does prevTokenAmount do besides just exist...
-        prevTokenAmount = prevTokenAmount == 0
-            ? currentTokenAmount
-            : prevTokenAmount;
-        //-------------
-
-        // Emit Staked
-        emit TokenStaked(difference, recipient);
-        // Handle Minting @audit - check the handle minting process here
-        return _handleMinting(recipient, difference, prevTokenAmount, oldPrice);
+        // get all stables here
+        uint currentBalance = stable.balance;
+        uint prevAllStablesBalance = _adjustedAllStables();
+        uint256 tokensToBuy = token.balanceOf(address(this));
+        // update current stable amount
+        stable.balance = tokensToBuy;
+        tokensToBuy -= currentBalance;
+        require(tokensToBuy >= numTokens, "No new tokens");
+        tokensToBuy = _adjustedStableBalance(tokensToBuy, stable.decimals);
+        return
+            _handleMinting(
+                recipient,
+                tokensToBuy,
+                prevAllStablesBalance,
+                oldPrice
+            );
     }
 
     /** Sells CLIMB Tokens And Deposits Underlying Asset Tokens into Recipients's Address */
@@ -386,7 +379,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         } else tokensToSwap = (tokenAmount * (sellFee)) / feeDenominator;
 
         // value of taxed tokens
-        uint256 amountUnderlyingAsset = (tokensToSwap * oldPrice) / precision;
+        uint256 amountUnderlyingAsset = (tokensToSwap * oldPrice) / PRECISION;
         // require above zero value
         require(
             amountUnderlyingAsset > 0,
@@ -424,43 +417,35 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     ) private returns (uint) {
         // fee exempt
         bool takeFee = !isFeeExempt[msg.sender];
-
+        require(received > 0, "No zero buy");
         // find the number of tokens we should mint to keep up with the current price
-        /// @audit - CLIMB_SUPPLY * USDT RECEIVED / USDT PREVIOUSLY HELD
-        uint256 tokensToMintNoTax = (totalSupply * received) / prevTokenAmount;
-
+        /// @audit - CLIMB_SUPPLY * adjustedReceivedTokens / TotalAdjustedStableTokens
+        // TODO make sure implementation sends adjusted Amounts;
+        // set initial value before deduction
+        uint256 tokensToMint = (totalSupply * received) / prevTokenAmount;
         // apply fee to minted tokens to inflate price relative to total supply
-        uint256 tokensToMint = takeFee
-            ? (tokensToMintNoTax * mintFee) / feeDenominator // @audit-ok - check the comments for fees, since they're BS
-            : tokensToMintNoTax - 100;
-
-        /// @audit - This is an unnecesary check, check should be "received > 0" if < 100 it should revert on it's own
-        // revert if under 1
-        require(tokensToMint > 0, "Must Purchase At Least One Climb Token");
-
         if (takeFee) {
-            // @audit come back to this since it's very confusing, What does the devshare have to do with the liquidityshare?
-            // difference
-            uint256 taxTaken = tokensToMintNoTax - tokensToMint; // @audit-ok - ok so this is why the fee is reversed to 95% instead of it being 5%
-            // allocate dev share
-            // @audit - honestly what a fucking roundabout way of taking 1% of fees can definitely improve this.
-            uint256 allocation = (taxTaken * devShare) / sharesDenominator;
+            uint256 taxTaken = (tokensToMint * mintFee) / feeDenominator;
+            tokensToMint -= taxTaken;
+            // allocate dev share - we're reusing variables
+            taxTaken = (taxTaken * devShare) / sharesDenominator;
             // mint to dev
-            _mint(dev, allocation);
+            _mint(dev, taxTaken);
+        } else {
+            tokensToMint -= 100;
         }
 
         // mint to Buyer
         _mint(recipient, tokensToMint);
         // Requires The Price of CLIMB to Increase in order to complete the transaction
         _requirePriceRises(oldPrice);
-        return tokensToMintNoTax;
+        return tokensToMint;
     }
 
     /** Mints Tokens to the Receivers Address */
     function _mint(address receiver, uint256 amount) private {
-        _balances[receiver] = _balances[receiver] + amount;
-        totalSupply = totalSupply + amount;
-        /// @audit - dafuq is _volumeFor?
+        _balances[receiver] += amount;
+        totalSupply += amount;
         _volumeFor[receiver] += amount;
         emit Transfer(address(0), receiver, amount);
     }
@@ -493,32 +478,45 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     //////    READ FUNCTIONS    ///////
     ///////////////////////////////////
 
-    /** Price Of CLIMB in BUSD With 18 Points Of Precision */
+    /** Price Of CLIMB in USD in wei */
     function calculatePrice() external view returns (uint256) {
         return _calculatePrice();
     }
 
     /** Precision Of $0.001 */
     function price() external view returns (uint256) {
-        return (_calculatePrice() * 10 ** 3) / precision;
+        return (_calculatePrice() * 10 ** 3) / PRECISION;
     }
 
     /** Returns the Current Price of 1 Token */
     function _calculatePrice() internal view returns (uint256) {
         // get balance of accepted stables
+        uint256 tokenBalance = _adjustedAllStables();
+        return (tokenBalance * PRECISION) / totalSupply;
+    }
+
+    function _adjustedAllStables() private view returns (uint256) {
         uint256 tokenBalance = 0;
         for (uint8 i = 0; i < currentStables.length; i++) {
             Stable storage stable = stables[currentStables[i]];
-            tokenBalance +=
-                (stable.balance * 1 ether) /
-                (10 ** stable.decimals); // adjust so everything is 18 decimals
+            tokenBalance += _adjustedStableBalance(
+                stable.balance,
+                stable.decimals
+            ); // adjust so everything is 18 decimals
         }
-        return (tokenBalance * precision) / totalSupply;
+        return tokenBalance;
+    }
+
+    function _adjustedStableBalance(
+        uint _stableBalance,
+        uint8 _decimals
+    ) private pure returns (uint) {
+        return (_stableBalance * 1 ether) / (10 ** _decimals);
     }
 
     /** Returns the value of your holdings before the sell fee */
     function getValueOfHoldings(address holder) public view returns (uint256) {
-        return (_balances[holder] * _calculatePrice()) / precision;
+        return (_balances[holder] * _calculatePrice()) / PRECISION;
     }
 
     /** Returns the value of your holdings after the sell fee */
@@ -594,7 +592,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         uint256 newTransferFee
     ) external onlyOwner {
         require(
-            newSellFee <= 995 && newMintFee <= 995 && newTransferFee <= 995,
+            newSellFee <= 995 && newMintFee <= 250 && newTransferFee <= 250,
             "invalid fees"
         );
         sellFee = newSellFee;
@@ -603,14 +601,18 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         emit UpdateFees(sellFee, mintFee, transferFee);
     }
 
-    // @audit - this needs pretty thorough testing, but feels like it'll be ok
-    function setStableToken(address _stable, bool exempt) public onlyOwner {
+    /// @notice Add or remove a Stable token to be used by CLIMBv2
+    /// @param _stable The address of the STABLE token to change
+    /// @param _accept The status to enable or disable the stable token
+    /// @dev if the token is already set a few extra requirements are needed: 1. Not the only accepted token, 2. there are no more tokens held by this contract
+    /// if setting up a new token, it would be ideal that some balance is sent before hand.
+    function setStableToken(address _stable, bool _accept) public onlyOwner {
         require(_stable != address(0), "Zero");
         Stable storage stable = stables[_stable];
-        require(stable.accepted != exempt, "Already set");
-        stable.accepted = exempt;
+        require(stable.accepted != _accept, "Already set");
+        stable.accepted = _accept;
         IERC20Metadata stableToken = IERC20Metadata(_stable);
-        if (!exempt && stable.setup) {
+        if (!_accept && stable.setup) {
             // If deleted && setup
             if (currentStables[0] == _stable) {
                 require(currentStables.length > 1, "Not enough stables");
@@ -626,18 +628,19 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
             stable.index = 0;
             stable.setup = false;
             stable.accepted = false;
-        } else if (exempt && !stable.setup) {
+        } else if (_accept && !stable.setup) {
             // If added && not setup
             stable.index = uint8(currentStables.length);
             currentStables.push(_stable);
             stable.setup = true;
             stable.balance = stableToken.balanceOf(address(this));
-            stable.accepted = true;
         }
 
-        emit SetStableToken(_stable, exempt);
+        emit SetStableToken(_stable, _accept);
     }
 
+    /// @notice Show all accepted stables
+    /// @return token address array in memory
     function allStables() external view returns (address[] memory) {
         return currentStables;
     }
