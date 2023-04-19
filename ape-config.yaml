@@ -25,3 +25,7 @@ hardhat:
       mainnet:
         upstream_provider: "https://bscrpc.com"
         block_number: 26976870
+test:
+  gas:
+    exclude:
+      - contract_name: BEP20Token
