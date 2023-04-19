@@ -195,7 +195,10 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         return true;
     }
 
-    /** Receives Underlying Tokens and Deposits CLIMB in Sender's Address, Must Have Prior Approval */
+    /// @notice creates CLIMBv2 from _stable sent.
+    /// @param numTokens the amount of tokens of _stable that will be sent to contract
+    /// @param _stable the address of the Stable token to receive
+    /// @dev MUST HAVE PRIOR APPROVAL
     function buy(
         uint256 numTokens,
         address _stable
@@ -204,7 +207,11 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         return _buyToken(numTokens, msg.sender, _stable);
     }
 
-    /** Receives Underlying Tokens and Deposits CLIMB in Recipient's Address, Must Have Prior Approval */
+    /// @notice creates CLIMBv2 from _stable sent.
+    /// @param recipient the user who will receive the tokens
+    /// @param numTokens the amount of tokens of _stable that will be sent to contract
+    /// @param _stable the address of the Stable token to receive
+    /// @dev MUST HAVE PRIOR APPROVAL
     function buy(
         address recipient,
         uint256 numTokens,
