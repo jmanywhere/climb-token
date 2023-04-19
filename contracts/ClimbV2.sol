@@ -52,7 +52,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     uint256 public totalSupply = 1 ether;
     // Fees
     uint256 public mintFee = 50; // 5.0% buy fee
-    uint256 public sellFee = 950; // 5.0% sell fee
+    uint256 public sellFee = 50; // 5.0% sell fee
     uint256 public transferFee = 50; // 5.0% transfer fee
     uint256 public constant feeDenominator = 1000;
 
@@ -371,48 +371,57 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         address recipient,
         address _stable
     ) internal {
-        require(tokenAmount > 0 && _balances[msg.sender] >= tokenAmount);
-        require(stables[_stable].accepted, "Stable Not Active");
-        IERC20 token = IERC20(_stable);
+        require(
+            tokenAmount > 0 && _balances[msg.sender] >= tokenAmount,
+            "Not enough balance"
+        );
+        Stable storage payoutStable = stables[_stable];
+        require(payoutStable.accepted, "Stable Not Active");
         // calculate price change
         uint256 oldPrice = _calculatePrice();
         // fee exempt
         bool takeFee = !isFeeExempt[msg.sender];
+
         uint tokensToSwap;
         // tokens post fee to swap for underlying asset
+        _burn(msg.sender, tokenAmount);
         if (!takeFee) {
             require(tokenAmount > 100, "Minimum of 100");
             tokensToSwap = tokenAmount - 100;
-        } else tokensToSwap = (tokenAmount * (sellFee)) / feeDenominator;
-
-        // value of taxed tokens
-        uint256 amountUnderlyingAsset = (tokensToSwap * oldPrice) / PRECISION;
-        // require above zero value
-        require(
-            amountUnderlyingAsset > 0,
-            "Zero Assets To Redeem For Given Value"
-        );
-
-        // burn from sender + supply
-        _burn(msg.sender, tokenAmount);
-
-        if (takeFee) {
-            // difference
-            uint256 taxTaken = tokenAmount - tokensToSwap;
-            // allocate dev share
-            uint256 allocation = (taxTaken * devShare) / sharesDenominator;
-            // mint to dev
-            _mint(dev, allocation);
+        } else {
+            uint taxFee = (tokenAmount * sellFee) / feeDenominator;
+            tokensToSwap = tokenAmount - taxFee;
+            taxFee = (taxFee * devShare) / sharesDenominator;
+            _mint(dev, taxFee);
         }
 
+        // value of taxed tokens
+        uint256 stableAmount = (tokensToSwap * oldPrice) / PRECISION;
+        uint256 totalOfCurrentStable = _adjustedStableBalance(
+            payoutStable.balance,
+            payoutStable.decimals
+        );
+        // require above zero value
+        require(
+            stableAmount > 0 && stableAmount <= totalOfCurrentStable,
+            "Not enough of STABLE"
+        );
+        // Adjust stable back to usable amounts
+        stableAmount = _getAmountFromAdjusted(
+            stableAmount,
+            payoutStable.decimals
+        );
+        IERC20 stableToken = IERC20(_stable);
         // send Tokens to Seller
-        bool successful = token.transfer(recipient, amountUnderlyingAsset);
+        bool successful = stableToken.transfer(recipient, stableAmount);
         // ensure Tokens were delivered
-        require(successful, "Underlying Asset Transfer Failure");
+        require(successful, "Failed to send Stable");
+        // set the new balance
+        payoutStable.balance = stableToken.balanceOf(address(this));
         // Requires The Price of CLIMB to Increase in order to complete the transaction
         _requirePriceRises(oldPrice);
         // Differentiate Sell
-        emit TokenSold(tokenAmount, amountUnderlyingAsset, recipient);
+        emit TokenSold(tokenAmount, stableAmount, recipient);
     }
 
     /** Handles Minting Logic To Create New Tokens*/
@@ -426,8 +435,6 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         bool takeFee = !isFeeExempt[msg.sender];
         require(received > 0, "No zero buy");
         // find the number of tokens we should mint to keep up with the current price
-        /// @audit - CLIMB_SUPPLY * adjustedReceivedTokens / TotalAdjustedStableTokens
-        // TODO make sure implementation sends adjusted Amounts;
         // set initial value before deduction
         uint256 tokensToMint = (totalSupply * received) / prevTokenAmount;
         // apply fee to minted tokens to inflate price relative to total supply
@@ -487,7 +494,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
 
     /** Price Of CLIMB in USD in wei */
     function calculatePrice() external view returns (uint256) {
-        return _calculatePrice();
+        return _calculatePrice() / PRECISION;
     }
 
     /** Precision Of $0.001 */
@@ -521,6 +528,13 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         return (_stableBalance * 1 ether) / (10 ** _decimals);
     }
 
+    function _getAmountFromAdjusted(
+        uint _adjustedAmount,
+        uint8 _decimals
+    ) private pure returns (uint) {
+        return (_adjustedAmount * (10 ** _decimals)) / 1 ether;
+    }
+
     /** Returns the value of your holdings before the sell fee */
     function getValueOfHoldings(address holder) public view returns (uint256) {
         return (_balances[holder] * _calculatePrice()) / PRECISION;
@@ -530,7 +544,9 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     function getValueOfHoldingsAfterTax(
         address holder
     ) external view returns (uint256) {
-        return (getValueOfHoldings(holder) * sellFee) / feeDenominator;
+        uint currentHoldingValue = getValueOfHoldings(holder);
+        uint tax = (getValueOfHoldings(holder) * sellFee) / feeDenominator;
+        return currentHoldingValue - tax;
     }
 
     /** Volume in CLIMB For A Particular Wallet */
@@ -599,7 +615,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         uint256 newTransferFee
     ) external onlyOwner {
         require(
-            newSellFee <= 995 && newMintFee <= 250 && newTransferFee <= 250,
+            newSellFee + newMintFee <= 250 && newTransferFee <= 250,
             "invalid fees"
         );
         sellFee = newSellFee;
