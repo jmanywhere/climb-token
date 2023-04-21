@@ -74,7 +74,12 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     // Activates Token Trading
     bool Token_Activated;
 
-    // initialize some stuff
+    ///@notice initialize the contract
+    /// 1. Set the Dev who receives some of the tx funds
+    /// 2. set fee exemptions
+    /// 3. mint the initial total supply
+    /// 4. add all the stables we'll accept
+    /// 5. emit Events
     constructor(address[] memory _stables, address _dev) {
         dev = _dev;
         // fee exempt this + owner + router for LP injection
@@ -221,24 +226,30 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         return _buyToken(numTokens, recipient, _stable);
     }
 
+    /// @notice creates CLIMBv2 by sending tokens first to the contract, this is so we can  skim a transfer on a buy.
+    /// @param recipient person who gets the swapped token
+    /// @param numTokens, the amount of tokens sent in STABLE
+    /// @param _stable the address of the STABLE contract addess
     function buyFor(
         address recipient,
         uint256 numTokens,
         address _stable
     ) external nonReentrant returns (uint) {
-        // @audit - CHECK THIS PLZ
-        // TODO implementation pending
         require(isMatrix[msg.sender], "Only matrix allowed");
-        // TODO check that _stable was received and then proceed to mint
         return _buyToken(numTokens, recipient, _stable);
     }
 
-    /** Sells CLIMB Tokens And Deposits Underlying Asset Tokens into Seller's Address */
+    /// @notice sells CLIMB in exchange for _stable token
+    /// @param tokenAmount amount of CLIMB to sell
+    /// @param _stable contract address of the stable we want to receive
     function sell(uint256 tokenAmount, address _stable) external nonReentrant {
         _sell(tokenAmount, msg.sender, _stable);
     }
 
-    /** Sells CLIMB Tokens And Deposits Underlying Asset Tokens into Recipients's Address */
+    /// @notice sells CLIMB in exchange for _stable token
+    /// @param recipient address to send STABLEs to
+    /// @param tokenAmount amount of CLIMB to sell
+    /// @param _stable contract address of the stable we want to receive
     function sell(
         address recipient,
         uint256 tokenAmount,
@@ -247,12 +258,15 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         _sell(tokenAmount, recipient, _stable);
     }
 
-    /** Sells All CLIMB Tokens And Deposits Underlying Asset Tokens into Seller's Address */
+    /// @notice will attempt to sell all of the holding bag and receive only stable in return
+    /// @param _stable the contract address of the stable to receive
     function sellAll(address _stable) external nonReentrant {
         _sell(_balances[msg.sender], msg.sender, _stable);
     }
 
-    /** Sells Without Including Decimals */
+    /// @notice a simplified version of SELL for contract use directly from explorer
+    /// @param amount the amount of CLIMB tokens to sell to the nearest integer number
+    /// @param _stable the contract address of the token we would receive
     function sellInWholeTokenAmounts(
         uint256 amount,
         address _stable
@@ -329,7 +343,6 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         IERC20(_stable).transferFrom(msg.sender, address(this), amount);
     }
 
-    // @audit - instead of returning BOOL which is useless, return the amount of tokens that were minted
     /// @notice - This function is used to "STAKE" the stable token and calls to create CLIMB tokens
     function _buyToken(
         uint256 numTokens,
@@ -345,7 +358,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         Stable storage stable = stables[_stable];
         IERC20 token = IERC20(_stable);
         // calculate price change
-        // @audit-ok - This uses non synced values so it's fine to call after tokens have been transferred in
+        // This uses non synced values so it's fine to call after tokens have been transferred in
         uint256 oldPrice = _calculatePrice();
         // get all stables here
         uint currentBalance = stable.balance;

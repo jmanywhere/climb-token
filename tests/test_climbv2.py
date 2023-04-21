@@ -315,6 +315,24 @@ def test_sell_tokens_busd(setup):
     pass
 
 
+def test_buy_for(setup):
+    owner, usdt, busd, climb, user1, user2, user3, busd_whale, usdt_whale, dev = setup
+
+    buy_amount = 100 * int(1e18)
+    # We will assume that user2 is a matrix contract
+    climb.setMatrixContract(user2.address, True, sender=owner)
+
+    with reverts("Only matrix allowed"):
+        climb.buyFor(user2.address, buy_amount, usdt.address, sender=user1)
+    with reverts("No new tokens"):
+        climb.buyFor(user2.address, buy_amount, usdt.address, sender=user2)
+
+    usdt.transfer(climb.address, buy_amount, sender=user2)
+    climb.buyFor(user2.address, buy_amount, usdt.address, sender=user2)
+
+    assert climb.balanceOf(user2.address) == buy_amount * 95 // 100
+
+
 def test_owner_functions(setup):
     warnings.warn("Not implemented")
     pass
