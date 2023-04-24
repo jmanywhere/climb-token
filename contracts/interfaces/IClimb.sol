@@ -6,9 +6,16 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IClimb is IERC20 {
     function burn(uint256 amount) external;
 
-    function sell(uint256 amount, address stable) external;
+    function sell(
+        uint256 amount,
+        address stable
+    ) external returns (uint stableReceived);
 
-    function sell(address recipient, uint256 amount, address stable) external;
+    function sell(
+        address recipient,
+        uint256 amount,
+        address stable
+    ) external returns (uint stableReceived);
 
     // These functions are used to buy CLIMB with STABLE, STABLE will need to be approved for transfer in for this contract.
     function buy(uint256 numTokens, address stable) external returns (uint256);
@@ -30,6 +37,23 @@ interface IClimb is IERC20 {
     function eraseHoldings(uint256 nHoldings) external;
 
     function volumeFor(address wallet) external view returns (uint256);
+
+    function calculatePrice() external view returns (uint256);
+
+    function stables(
+        address _stable
+    )
+        external
+        view
+        returns (
+            uint balance,
+            uint8 index,
+            uint8 decimals,
+            bool accepted,
+            bool setup
+        );
+
+    function allStables() external view returns (address[] memory);
 
     ///@notice this function is called by OWNER only and is used to exchange the complete balance in STABLE1 for STABLE2
     function exchangeTokens(
