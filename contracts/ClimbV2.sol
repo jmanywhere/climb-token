@@ -242,8 +242,11 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     /// @notice sells CLIMB in exchange for _stable token
     /// @param tokenAmount amount of CLIMB to sell
     /// @param _stable contract address of the stable we want to receive
-    function sell(uint256 tokenAmount, address _stable) external nonReentrant {
-        _sell(tokenAmount, msg.sender, _stable);
+    function sell(
+        uint256 tokenAmount,
+        address _stable
+    ) external nonReentrant returns (uint) {
+        return _sell(tokenAmount, msg.sender, _stable);
     }
 
     /// @notice sells CLIMB in exchange for _stable token
@@ -254,8 +257,8 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         address recipient,
         uint256 tokenAmount,
         address _stable
-    ) external nonReentrant {
-        _sell(tokenAmount, recipient, _stable);
+    ) external nonReentrant returns (uint) {
+        return _sell(tokenAmount, recipient, _stable);
     }
 
     /// @notice will attempt to sell all of the holding bag and receive only stable in return
@@ -383,7 +386,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         uint256 tokenAmount,
         address recipient,
         address _stable
-    ) internal {
+    ) internal returns (uint) {
         require(
             tokenAmount > 0 && _balances[msg.sender] >= tokenAmount,
             "Not enough balance"
@@ -435,6 +438,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         _requirePriceRises(oldPrice);
         // Differentiate Sell
         emit TokenSold(tokenAmount, stableAmount, recipient);
+        return stableAmount;
     }
 
     /** Handles Minting Logic To Create New Tokens*/
