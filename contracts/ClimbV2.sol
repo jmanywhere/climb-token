@@ -674,6 +674,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
             currentStables.push(_stable);
             stable.setup = true;
             stable.balance = stableToken.balanceOf(address(this));
+            stable.decimals = stableToken.decimals();
         }
 
         emit SetStableToken(_stable, _accept);
