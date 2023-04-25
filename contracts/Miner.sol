@@ -3,10 +3,11 @@ pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IClimb.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 
-contract BinanceWealthMatrix is Ownable {
+contract BinanceWealthMatrix is Ownable, ReentrancyGuard {
     struct Mining {
         uint256 miners;
         uint256 totalInvested; // This is in CLIMB
@@ -15,36 +16,24 @@ contract BinanceWealthMatrix is Ownable {
         uint256 lastInteraction;
         address referrer;
     }
-    mapping(address => bool) public acceptedStables;
     mapping(address => Mining) public user;
 
     uint256 public constant EGGS_TO_HATCH_1MINERS = 2592000;
-    uint256 public constant MAX_VAULT_TIME = 43200; // 12 hours
-    address public constant USDT_ADDRESS =
-        0x55d398326f99059fF775485246999027B3197955;
-    address public constant BUSD_ADDRESS =
-        0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
+    uint256 public constant MAX_VAULT_TIME = 12 hours;
 
     uint256 public constant PSN = 10000;
     uint256 public constant PSNH = 5000;
-    bool public initialized = false;
-    address public feeReceiver;
-    address payable climb;
-    IOwnableClimb public immutable CLIMB;
-    IERC20 USDT = IERC20(USDT_ADDRESS);
-    mapping(address => uint256) public hatcheryMiners;
-    mapping(address => uint256) public totalInvested;
-    mapping(address => uint256) public totalRedeemed;
-    mapping(address => uint256) public claimedEggs;
-    mapping(address => uint256) public lastHatch;
-    mapping(address => address) public referrals;
     uint256 public marketEggs;
+
+    address public feeReceiver;
+    address public climb;
+
+    IOwnableClimb public immutable CLIMB;
+    bool public initialized = false;
 
     constructor(address _climbToken) {
         CLIMB = IOwnableClimb(_climbToken);
         feeReceiver = CLIMB.owner();
-        acceptedStables[USDT_ADDRESS] = true;
-        acceptedStables[BUSD_ADDRESS] = true;
     }
 
     // Invest with USDT
@@ -52,31 +41,26 @@ contract BinanceWealthMatrix is Ownable {
         address ref,
         address _stable,
         uint256 stableAmount
-    ) public {
+    ) public nonReentrant {
         require(initialized, "Matrix is not initialized");
-        require(acceptedStables[_stable], "Not accepted");
         IERC20 stable = IERC20(_stable);
 
-        // @audit this requires 2 transfers, let's try to make it just one by calling CLAIM `BUY FOR`
-        // BUY FOR should only be allowed by matrix contracts or other allowed contracts
-        // ----------------------------
-        stable.transferFrom(msg.sender, address(this), stableAmount);
-        require(
-            stable.balanceOf(address(this)) > 0,
-            "Stable token not received"
-        );
         uint256 previousBalance = CLIMB.balanceOf(address(this));
-        stable.approve(address(CLIMB), stableAmount);
-        // TODO Make sure BUY returns the amount of CLIMB bought
-        uint newBalance = CLIMB.buy(address(this), stableAmount, _stable);
+        // We transfer _stable straight to CLIMB for a single transfer TX
+        stable.transferFrom(msg.sender, address(CLIMB), stableAmount);
+        uint amount = CLIMB.buyFor(address(this), stableAmount, _stable);
         // ----------------------------
         // ----------------------------
-        uint256 amount = newBalance - previousBalance;
         uint256 eggsBought = calculateEggBuy(amount, previousBalance);
 
         Mining storage miner = user[msg.sender];
 
         eggsBought -= devFee(eggsBought);
+
+        // send referral eggs before adding in claimable eggs
+        _checkAndSetRef(ref, miner);
+        _sendRefAmount(miner.referrer, eggsBought / 10);
+
         eggsBought += miner.eggsToClaim;
         miner.eggsToClaim = 0;
 
@@ -86,11 +70,6 @@ contract BinanceWealthMatrix is Ownable {
         miner.totalInvested += amount;
         miner.lastInteraction = block.timestamp;
 
-        // send referral eggs
-        _checkAndSetRef(ref, miner);
-        if (miner.referrer != address(0)) {
-            user[miner.referrer].eggsToClaim += (eggsBought / 10);
-        }
         // boost market to nerf miners hoarding (MINER)
         marketEggs += eggsBought / 5;
         emit Invest(msg.sender, amount);
@@ -105,20 +84,35 @@ contract BinanceWealthMatrix is Ownable {
         }
     }
 
+    function _sendRefAmount(address _ref, uint amount) private {
+        if (_ref != address(0)) {
+            user[_ref].eggsToClaim += amount;
+        }
+    }
+
     // Reinvest in Matrix
-    function reinvestInMatrix(address ref, address _stable) public {
+    function reinvestInMatrix(
+        address ref,
+        address _stable
+    ) public nonReentrant {
         require(initialized, "Matrix is not initialized");
-        require(acceptedStables[_stable], "Not accepted");
         Mining storage miner = user[msg.sender];
         _checkAndSetRef(ref, miner);
 
-        uint256 eggsUsed = getMyEggs();
+        uint256 eggsUsed = getEggs(msg.sender);
         uint256 eggsValue = calculateEggSell(eggsUsed);
         uint256 fee = devFee(eggsValue);
         eggsValue -= fee;
 
         uint256 newMiners = (eggsUsed - devFee(eggsUsed)) /
             EGGS_TO_HATCH_1MINERS;
+
+        // boost market to nerf miners hoarding
+        eggsUsed /= 5; // 20% of total eggs
+        marketEggs += eggsUsed;
+        // send Referral eggs
+        eggsUsed /= 2; // 10% of total eggs
+        _sendRefAmount(miner.referrer, eggsUsed);
 
         miner.miners += newMiners;
         miner.eggsToClaim = 0;
@@ -132,30 +126,51 @@ contract BinanceWealthMatrix is Ownable {
         CLIMB.burn(fee);
         CLIMB.sell(address(feeReceiver), dFee, _stable);
 
-        // send referral eggs
-        claimedEggs[referrals[msg.sender]] += (eggsUsed / 10);
-
         // boost market to nerf miners hoarding
-        marketEggs += (eggsUsed / 5);
         // Actual eggs value reinvested
         emit Reinvest(msg.sender, eggsValue);
     }
 
     // Withdraw Stable
-    function matrixRedeem(address _preferredStable) public {
+    function matrixRedeem() public nonReentrant {
         require(initialized, "Matrix is not initialized");
-        require(acceptedStables[_preferredStable], "Not accepted");
         Mining storage miner = user[msg.sender];
-        uint256 hasEggs = getMyEggs();
+        uint256 hasEggs = getEggs(msg.sender);
         uint256 eggsValue = calculateEggSell(hasEggs);
         miner.eggsToClaim = 0;
         miner.lastInteraction = block.timestamp;
         miner.totalRedeemed += eggsValue;
         marketEggs += hasEggs;
-        // TODO - add a check for the preferred stable
-        // todo - ADD the argument for preferred stable in CLIMB token
-        CLIMB.sell(msg.sender, eggsValue, _preferredStable);
+        uint currentClimbPrice = CLIMB.calculatePrice();
+        uint stableAdjustable = (eggsValue * currentClimbPrice) / 1 ether;
+        eggsValue = _sellEggs(stableAdjustable, eggsValue);
         emit Redeem(msg.sender, eggsValue);
+    }
+
+    function _sellEggs(
+        uint stableGoal,
+        uint climbToSell
+    ) private returns (uint valueOfSell) {
+        address[] memory allStables = CLIMB.allStables();
+        for (uint i = 0; i < allStables.length; i++) {
+            (uint balance, , uint8 _precision, , ) = CLIMB.stables(
+                allStables[i]
+            );
+            balance = (balance * 1 ether) / (10 ** _precision);
+            if (balance >= stableGoal) {
+                return CLIMB.sell(msg.sender, climbToSell, allStables[i]);
+            } else {
+                uint climbAmount = (climbToSell * balance) / stableGoal;
+                stableGoal -= balance;
+                climbToSell -= climbAmount;
+                if (climbAmount > 0)
+                    valueOfSell += CLIMB.sell(
+                        msg.sender,
+                        climbAmount,
+                        allStables[i]
+                    );
+            }
+        }
     }
 
     //magic trade balancing algorithm
@@ -200,20 +215,21 @@ contract BinanceWealthMatrix is Ownable {
         return CLIMB.balanceOf(address(this));
     }
 
-    function getMyMiners() public view returns (uint256) {
-        return hatcheryMiners[msg.sender];
+    function getMiners(address _user) public view returns (uint256) {
+        return user[_user].miners;
     }
 
-    function getMyEggs() public view returns (uint256) {
-        return claimedEggs[msg.sender] + getEggsSinceLastHatch(msg.sender);
+    function getEggs(address _user) public view returns (uint256) {
+        return user[_user].eggsToClaim + getEggsSinceLastHatch(_user);
     }
 
     function getEggsSinceLastHatch(address adr) public view returns (uint256) {
+        Mining storage currentUser = user[adr];
         uint256 secondsPassed = min(
             MAX_VAULT_TIME,
-            (block.timestamp - lastHatch[adr])
+            (block.timestamp - currentUser.lastInteraction)
         );
-        return secondsPassed * hatcheryMiners[adr];
+        return secondsPassed * currentUser.miners;
     }
 
     function min(uint256 a, uint256 b) private pure returns (uint256) {
