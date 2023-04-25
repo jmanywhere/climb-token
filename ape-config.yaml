@@ -19,7 +19,9 @@ compiler:
     - "*yarn.lock"
     - "*node_modules/*"
     - "*README.md"
+    - "*_BUGGED_*"
 hardhat:
+  port: 8545
   fork:
     bsc:
       mainnet:
