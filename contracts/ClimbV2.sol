@@ -511,7 +511,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
 
     /** Price Of CLIMB in USD in wei */
     function calculatePrice() external view returns (uint256) {
-        return _calculatePrice() / PRECISION;
+        return _calculatePrice();
     }
 
     /** Precision Of $0.001 */
