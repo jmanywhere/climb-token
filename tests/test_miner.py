@@ -187,3 +187,39 @@ def test_redeem(initialized_setup):
     ) - init_bal
     matrix.matrixRedeem(sender=user1)
     assert busd.balanceOf(user1.address) > 1000 * int(1e18)
+
+
+def test_reinvest(initialized_setup):
+    owner, usdt, busd, climb, user1, user2, user3, dev, matrix = initialized_setup
+    investment_amount = 100 * int(1e18)
+    # setup
+    with reverts("ERC20: insufficient allowance"):
+        matrix.investInMatrix(
+            user2.address, usdt.address, investment_amount, sender=user1
+        )
+    usdt.approve(matrix.address, investment_amount, sender=user1)
+    busd.approve(matrix.address, investment_amount, sender=user2)
+    # User 2 invests BUSD with user1 as referral
+    matrix.investInMatrix(user2.address, busd.address, investment_amount, sender=user2)
+    # User 1 invests BUSD with user2 as referral
+    matrix.investInMatrix(user1.address, usdt.address, investment_amount, sender=user1)
+
+    miner1 = matrix.user(user1.address)
+    miner2 = matrix.user(user2.address)
+
+    # for an exact + 1 miner it's +273s, however since we're takig
+    chain.mine(deltatime=288)
+    supply_before = climb.totalSupply()
+    dev_before = usdt.balanceOf(climb.owner())
+    # User 2 Reinvests in matrix
+    matrix.reinvestInMatrix(user2.address, sender=user2)
+    miner_2_after_reinvest = matrix.user(user2.address)
+    assert miner_2_after_reinvest["miners"] == miner2["miners"] + 1
+    assert supply_before > climb.totalSupply()
+    assert dev_before < usdt.balanceOf(climb.owner())
+
+    # Do this reinvestment every 6 hours 20 times
+    for x in range(0, 20):
+        chain.mine(deltatime=6 * 3600)
+        matrix.reinvestInMatrix(user2.address, sender=user2)
+        matrix.reinvestInMatrix(user1.address, sender=user1)
