@@ -9,6 +9,7 @@ plugins:
   - name: etherscan
   - name: bsc
 solidity:
+  optimize: True
   import_remapping:
     - "@openzeppelin/contracts=OpenZeppelin/4.8.2"
 compiler:
@@ -31,3 +32,4 @@ test:
   gas:
     exclude:
       - contract_name: BEP20Token
+      - contract_name: TestToken
