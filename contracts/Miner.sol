@@ -91,10 +91,7 @@ contract BinanceWealthMatrix is Ownable, ReentrancyGuard {
     }
 
     // Reinvest in Matrix
-    function reinvestInMatrix(
-        address ref,
-        address _stable
-    ) public nonReentrant {
+    function reinvestInMatrix(address ref) public nonReentrant {
         require(initialized, "Matrix is not initialized");
         Mining storage miner = user[msg.sender];
         _checkAndSetRef(ref, miner);
@@ -124,8 +121,9 @@ contract BinanceWealthMatrix is Ownable, ReentrancyGuard {
         fee -= dFee;
 
         CLIMB.burn(fee);
-        CLIMB.sell(address(feeReceiver), dFee, _stable);
-
+        uint stableGoal = CLIMB.calculatePrice();
+        stableGoal = (dFee * stableGoal) / 1 ether;
+        _sellEggs(stableGoal, dFee, feeReceiver);
         // boost market to nerf miners hoarding
         // Actual eggs value reinvested
         emit Reinvest(msg.sender, eggsValue);
@@ -143,13 +141,14 @@ contract BinanceWealthMatrix is Ownable, ReentrancyGuard {
         marketEggs += hasEggs;
         uint currentClimbPrice = CLIMB.calculatePrice();
         uint stableAdjustable = (eggsValue * currentClimbPrice) / 1 ether;
-        eggsValue = _sellEggs(stableAdjustable, eggsValue);
+        eggsValue = _sellEggs(stableAdjustable, eggsValue, msg.sender);
         emit Redeem(msg.sender, eggsValue);
     }
 
     function _sellEggs(
         uint stableGoal,
-        uint climbToSell
+        uint climbToSell,
+        address recipient
     ) private returns (uint valueOfSell) {
         address[] memory allStables = CLIMB.allStables();
         for (uint i = 0; i < allStables.length; i++) {
@@ -158,14 +157,14 @@ contract BinanceWealthMatrix is Ownable, ReentrancyGuard {
             );
             balance = (balance * 1 ether) / (10 ** _precision);
             if (balance >= stableGoal) {
-                return CLIMB.sell(msg.sender, climbToSell, allStables[i]);
+                return CLIMB.sell(recipient, climbToSell, allStables[i]);
             } else {
                 uint climbAmount = (climbToSell * balance) / stableGoal;
                 stableGoal -= balance;
                 climbToSell -= climbAmount;
                 if (climbAmount > 0)
                     valueOfSell += CLIMB.sell(
-                        msg.sender,
+                        recipient,
                         climbAmount,
                         allStables[i]
                     );
