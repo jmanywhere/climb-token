@@ -1,14 +1,35 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
-import { matrixData, tokenBalances } from "@/data/matrixAtoms";
-import { commify, formatEther, parseEther } from "ethers/lib/utils.js";
+import {
+  matrixData,
+  miner,
+  minerAbi,
+  testBUSD,
+  testUSDT,
+  tokenBalances,
+  tokens,
+} from "@/data/matrixAtoms";
+import {
+  commify,
+  formatEther,
+  isAddress,
+  parseEther,
+} from "ethers/lib/utils.js";
+import { constants } from "ethers";
 import { useAtomValue } from "jotai";
 import { type NextPage } from "next";
 import Head from "next/head";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { BigNumber } from "@ethersproject/bignumber";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import classNames from "classnames";
+import {
+  erc20ABI,
+  useAccount,
+  useContractWrite,
+  usePrepareContractWrite,
+} from "wagmi";
+import { useRouter } from "next/router";
 
 const Home: NextPage = () => {
   return (
@@ -78,16 +99,47 @@ type AcceptedTokens = "usdt" | "busd";
 const acceptedTokens: AcceptedTokens[] = ["usdt", "busd"];
 
 const Deposit = () => {
+  const router = useRouter();
+  const { address } = useAccount();
+  const referral = isAddress(router.query.ref as string)
+    ? (router.query.ref as `0x${string}`)
+    : address || constants.AddressZero;
   const [tokenSelected, setTokenSelected] = useState<AcceptedTokens>("usdt");
   const [amount, setAmount] = useState<number | "">("");
   const balances = useAtomValue(tokenBalances);
 
-  const allowances = acceptedTokens.reduce(
-    (acc: { [key: string]: BigNumber }, token) => {
-      return { ...acc, [token]: balances[`${token}Allowance`] };
-    },
-    {}
+  const allowances = useMemo(
+    () =>
+      acceptedTokens.reduce((acc: { [key: string]: BigNumber }, token) => {
+        return { ...acc, [token]: balances[`${token}Allowance`] };
+      }, {}),
+    [balances]
   );
+
+  const { config: prepareApprove } = usePrepareContractWrite({
+    address: tokens[tokenSelected].address,
+    abi: erc20ABI,
+    functionName: "approve",
+    args: [miner, constants.MaxUint256],
+  });
+  const { config: prepareDeposit } = usePrepareContractWrite({
+    address: miner,
+    abi: minerAbi,
+    functionName: "investInMatrix",
+    args: [
+      referral,
+      tokens[tokenSelected].address,
+      parseEther((amount || "0").toString()),
+    ],
+  });
+
+  const { write: approveSpend } = useContractWrite(prepareApprove);
+  const { write: deposit } = useContractWrite(prepareDeposit);
+
+  const isAllowed = allowances[tokenSelected]?.gt(
+    parseEther((amount || "0").toString())
+  );
+
   return (
     <>
       <div className="flex flex-col items-center justify-center py-4">
@@ -117,18 +169,21 @@ const Deposit = () => {
               className={classNames(
                 "btn ",
                 " rounded-l-none",
-                allowances[tokenSelected]?.gt(
-                  parseEther((amount || "0").toString())
-                )
-                  ? "btn-primary"
+                isAllowed
+                  ? parseFloat(amount?.toString() || "0") > 0
+                    ? "btn-primary"
+                    : "btn-disabled"
                   : "btn-accent"
               )}
+              onClick={() => {
+                if (isAllowed) {
+                  deposit && deposit();
+                  return;
+                }
+                approveSpend && approveSpend();
+              }}
             >
-              {allowances[tokenSelected]?.gt(
-                parseEther((amount || "0").toString())
-              )
-                ? "Deposit"
-                : "Approve"}
+              {isAllowed ? "Deposit" : "Approve"}
             </button>
           </span>
         </div>
@@ -136,7 +191,7 @@ const Deposit = () => {
           Current Balance:&nbsp;
           {commify(
             parseFloat(
-              formatEther(balances[`${tokenSelected}Balance`])
+              formatEther(balances[`${tokenSelected}Balance`] || "0")
             ).toFixed(4)
           )}{" "}
           <select
