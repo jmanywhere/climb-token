@@ -5,10 +5,12 @@ import { Web3Button } from "@web3modal/react";
 import classNames from "classnames";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { useState } from "react";
+import { useMatrixFetchData } from "@/data/matrixAtoms";
 
 const Header = () => {
   const router = useRouter();
   const [showNav, setShowNav] = useState(false);
+  useMatrixFetchData();
   return (
     <header className="bg-black/20 px-6 py-4">
       <div className="container mx-auto flex flex-row items-center justify-between">

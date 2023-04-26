@@ -5,7 +5,14 @@
 
 @layer base{
   html {
-    @apply bg-base-100;
+    @apply bg-base-100 tracking-wide;
     color-scheme: dark;
+  }
+}
+
+@layer utilities{
+  .sparks-bg{
+    background: url('/assets/sparks.svg') top center no-repeat;
+    background-size: cover;
   }
 }
