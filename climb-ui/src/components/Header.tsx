@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import { Web3Button } from "@web3modal/react";
 import classNames from "classnames";
@@ -18,7 +19,15 @@ const Header = () => {
               onClick={() => setShowNav((p) => !p)}
             />
           </button>
-          <div className="text-2xl font-bold text-primary">BWM</div>
+          <div className="flex flex-row items-center text-2xl font-bold text-primary">
+            <Image
+              src="/assets/Logo.png"
+              height={1920 / 10}
+              width={1080 / 10}
+              alt="BWM Logo"
+            />
+            <div className="hidden md:block">BWM</div>
+          </div>
           <Link
             href="/"
             className={classNames(
