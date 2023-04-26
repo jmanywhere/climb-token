@@ -13,8 +13,8 @@ def setup(accounts):
     usdt_whale = accounts[5]
     busd_whale = accounts[6]
 
-    usdt = project.TestToken.deploy(sender=usdt_whale)
-    busd = project.TestToken.deploy(sender=busd_whale)
+    usdt = project.TestToken.deploy("tUSDT", "TUSDT", sender=usdt_whale)
+    busd = project.TestToken.deploy("tBUSD", "TBUSD", sender=busd_whale)
     climb = project.ClimbTokenV2.deploy([usdt.address, busd.address], dev, sender=owner)
     matrix = project.BinanceWealthMatrix.deploy(climb.address, sender=owner)
     # THIS NEEDS TO HAPPEN
