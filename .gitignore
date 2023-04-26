@@ -3,6 +3,7 @@
 .cache/
 
 # Python
+.envrc
 .env
 .venv
 .pytest_cache
