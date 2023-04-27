@@ -236,7 +236,11 @@ const StatsContainer = () => {
         <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
           <div className="stat-title font-bold text-accent">TVL</div>
           <div className="stat-value text-white">
-            {commify(formatEther(userInfo.totalInvested.mul(md.climbPrice)))
+            {commify(
+              formatEther(
+                userInfo.totalInvested.mul(md.climbPrice).div(parseEther("1"))
+              )
+            )
               .split(".")
               .map((x, i) => (i === 1 ? x.slice(0, 2) : x))
               .join(".")}
