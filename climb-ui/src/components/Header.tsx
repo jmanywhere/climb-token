@@ -80,7 +80,7 @@ const Header = () => {
       <div
         className={classNames(
           showNav ? "left-0" : "-left-full",
-          "fixed bottom-0 top-0 flex w-full bg-black/20 backdrop-blur-sm transition-all duration-200 ease-in-out md:hidden"
+          "fixed bottom-0 top-0 z-20 flex w-full bg-black/20 backdrop-blur-sm transition-all duration-200 ease-in-out md:hidden"
         )}
         onClick={(e) => {
           e.preventDefault();
