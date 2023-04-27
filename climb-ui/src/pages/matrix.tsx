@@ -4,10 +4,10 @@ import {
   matrixData,
   miner,
   minerAbi,
-  testBUSD,
-  testUSDT,
   tokenBalances,
   tokens,
+  userClaimable,
+  userData,
 } from "@/data/matrixAtoms";
 import {
   commify,
@@ -45,6 +45,10 @@ const Home: NextPage = () => {
       <main className="flex min-h-screen flex-col">
         <Header />
         <MatrixData />
+        <h2 className="pb-10 pt-3 text-center text-3xl tracking-wide">
+          <strong>P</strong>ersonal&nbsp;<strong>S</strong>tats
+        </h2>
+        <StatsContainer />
         <Footer />
       </main>
     </>
@@ -133,8 +137,10 @@ const Deposit = () => {
     ],
   });
 
-  const { write: approveSpend } = useContractWrite(prepareApprove);
-  const { write: deposit } = useContractWrite(prepareDeposit);
+  const { write: approveSpend, error: approveError } =
+    useContractWrite(prepareApprove);
+  const { write: deposit, error: depositError } =
+    useContractWrite(prepareDeposit);
 
   const isAllowed = allowances[tokenSelected]?.gt(
     parseEther((amount || "0").toString())
@@ -142,7 +148,7 @@ const Deposit = () => {
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center py-4">
+      <div className="flex flex-col items-center justify-center px-4 py-4">
         <div className="input-group max-w-sm rounded-xl bg-white">
           <input
             type="number"
@@ -170,7 +176,7 @@ const Deposit = () => {
                 "btn ",
                 " rounded-l-none",
                 isAllowed
-                  ? parseFloat(amount?.toString() || "0") > 0
+                  ? parseFloat(amount?.toString() || "0") > 0 && !depositError
                     ? "btn-primary"
                     : "btn-disabled"
                   : "btn-accent"
@@ -188,7 +194,7 @@ const Deposit = () => {
           </span>
         </div>
         <div className="mt-4 rounded-xl border-2 border-secondary bg-base-100 pl-4 text-sm uppercase text-gray-200">
-          Current Balance:&nbsp;
+          Balance:&nbsp;
           {commify(
             parseFloat(
               formatEther(balances[`${tokenSelected}Balance`] || "0")
@@ -205,5 +211,77 @@ const Deposit = () => {
         </div>
       </div>
     </>
+  );
+};
+
+const StatsContainer = () => {
+  const userInfo = useAtomValue(userData);
+  const md = useAtomValue(matrixData);
+  const userClaim = useAtomValue(userClaimable);
+  return (
+    <section className="container mx-auto flex w-full flex-row flex-wrap justify-center gap-x-6 gap-y-6 pb-8">
+      <div className="stats shadow">
+        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+          <div className="stat-title font-bold text-accent">Total Invested</div>
+          <div className="stat-value text-white">
+            {commify(formatEther(userInfo.totalInvested))
+              .split(".")
+              .map((x, i) => (i === 1 ? x.slice(0, 4) : x))
+              .join(".")}
+          </div>
+          <div className="stat-desc">CLIMB</div>
+        </div>
+      </div>
+      <div className="stats shadow">
+        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+          <div className="stat-title font-bold text-accent">TVL</div>
+          <div className="stat-value text-white">
+            {commify(formatEther(userInfo.totalInvested.mul(md.climbPrice)))
+              .split(".")
+              .map((x, i) => (i === 1 ? x.slice(0, 2) : x))
+              .join(".")}
+          </div>
+          <div className="stat-desc">USD</div>
+        </div>
+      </div>
+      <div className="stats shadow">
+        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+          <div className="stat-title font-bold text-accent">CLAIMABLE</div>
+          <div className="stat-value text-white">
+            {commify(formatEther(userClaim.claimable))
+              .split(".")
+              .map((x, i) => (i === 1 ? x.slice(0, 4) : x))
+              .join(".")}
+          </div>
+          <div className="stat-desc">CLIMB</div>
+        </div>
+      </div>
+      <div className="stats shadow">
+        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+          <div className="stat-title font-bold text-accent">
+            Total Redemptions
+          </div>
+          <div className="stat-value text-white">
+            {commify(formatEther(userInfo.totalRedeemed))
+              .split(".")
+              .map((x, i) => (i === 1 ? x.slice(0, 4) : x))
+              .join(".")}
+          </div>
+          <div className="stat-desc">CLIMB</div>
+        </div>
+      </div>
+      <div className="stats shadow">
+        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+          <div className="stat-title font-bold text-accent">Max Production</div>
+          <div className="stat-value text-white">
+            {commify(formatEther(userClaim.maxProduction))
+              .split(".")
+              .map((x, i) => (i === 1 ? x.slice(0, 4) : x))
+              .join(".")}
+          </div>
+          <div className="stat-desc">CLIMB</div>
+        </div>
+      </div>
+    </section>
   );
 };
