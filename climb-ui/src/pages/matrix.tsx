@@ -49,6 +49,7 @@ const Home: NextPage = () => {
           <strong>P</strong>ersonal&nbsp;<strong>S</strong>tats
         </h2>
         <StatsContainer />
+        <ActionButtons />
         <Footer />
       </main>
     </>
@@ -103,6 +104,8 @@ type AcceptedTokens = "usdt" | "busd";
 const acceptedTokens: AcceptedTokens[] = ["usdt", "busd"];
 
 const Deposit = () => {
+  const [loading, setLoading] = useState(false);
+
   const router = useRouter();
   const { address } = useAccount();
   const referral = isAddress(router.query.ref as string)
@@ -126,26 +129,24 @@ const Deposit = () => {
     functionName: "approve",
     args: [miner, constants.MaxUint256],
   });
-  const { config: prepareDeposit } = usePrepareContractWrite({
-    address: miner,
-    abi: minerAbi,
-    functionName: "investInMatrix",
-    args: [
-      referral,
-      tokens[tokenSelected].address,
-      parseEther((amount || "0").toString()),
-    ],
-  });
+  const { config: prepareDeposit, error: depositPrepareError } =
+    usePrepareContractWrite({
+      address: miner,
+      abi: minerAbi,
+      functionName: "investInMatrix",
+      args: [
+        referral,
+        tokens[tokenSelected].address,
+        parseEther((amount || "0").toString()),
+      ],
+    });
 
-  const { write: approveSpend, error: approveError } =
-    useContractWrite(prepareApprove);
-  const { write: deposit, error: depositError } =
-    useContractWrite(prepareDeposit);
+  const { write: approveSpend } = useContractWrite(prepareApprove);
+  const { writeAsync: deposit } = useContractWrite(prepareDeposit);
 
   const isAllowed = allowances[tokenSelected]?.gt(
     parseEther((amount || "0").toString())
   );
-
   return (
     <>
       <div className="flex flex-col items-center justify-center px-4 py-4">
@@ -176,14 +177,33 @@ const Deposit = () => {
                 "btn ",
                 " rounded-l-none",
                 isAllowed
-                  ? parseFloat(amount?.toString() || "0") > 0 && !depositError
+                  ? parseFloat(amount?.toString() || "0") > 0 &&
+                    !depositPrepareError
                     ? "btn-primary"
                     : "btn-disabled"
-                  : "btn-accent"
+                  : "btn-accent",
+                loading ? "loading" : ""
               )}
               onClick={() => {
+                setLoading(true);
                 if (isAllowed) {
-                  deposit && deposit();
+                  deposit &&
+                    void deposit()
+                      .then(async (x) => {
+                        await x
+                          .wait(2)
+                          .then((r) => {
+                            console.log("receipt", r);
+                            setAmount("");
+                            setLoading(false);
+                          })
+                          .catch((e) => console.log("error", e));
+                      })
+                      .catch((e) => {
+                        console.log("probably error", e);
+                        setLoading(false);
+                      })
+                      .finally(() => console.log("finally shit is done"));
                   return;
                 }
                 approveSpend && approveSpend();
@@ -283,9 +303,98 @@ const StatsContainer = () => {
               .map((x, i) => (i === 1 ? x.slice(0, 4) : x))
               .join(".")}
           </div>
-          <div className="stat-desc">CLIMB</div>
+          <div className="stat-desc">MAX CLIMB every 12 hours</div>
         </div>
       </div>
+    </section>
+  );
+};
+
+const ActionButtons = () => {
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { address } = useAccount();
+  const referral = isAddress(router.query.ref as string)
+    ? (router.query.ref as `0x${string}`)
+    : address || constants.AddressZero;
+
+  const { config: prepareCompound } = usePrepareContractWrite({
+    address: miner,
+    abi: minerAbi,
+    functionName: "reinvestInMatrix",
+    args: [referral],
+  });
+  const { config: prepareRedeem } = usePrepareContractWrite({
+    address: miner,
+    abi: minerAbi,
+    functionName: "matrixRedeem",
+  });
+
+  const { writeAsync: compound } = useContractWrite(prepareCompound);
+  const { writeAsync: redeem } = useContractWrite(prepareRedeem);
+
+  return (
+    <section className="sparks-bg flex w-full flex-row items-center justify-center gap-x-10 px-4 py-6">
+      <button
+        className={classNames(
+          "btn-outline btn-primary btn",
+          loading ? "btn-disabled loading" : ""
+        )}
+        onClick={() => {
+          setLoading(true);
+          compound &&
+            void compound()
+              .then(
+                async (x) =>
+                  await x
+                    .wait()
+                    .then((r) => {
+                      console.log(r);
+                      setLoading(false);
+                    })
+                    .catch((e) => {
+                      console.log(e);
+                      setLoading(false);
+                    })
+              )
+              .catch((e) => {
+                console.log(e);
+                setLoading(false);
+              });
+        }}
+      >
+        Reinvest $CLIMB
+      </button>
+      <button
+        className={classNames(
+          "btn-outline btn-accent btn",
+          loading ? "btn-disabled loading" : ""
+        )}
+        onClick={() => {
+          setLoading(true);
+          redeem &&
+            void redeem()
+              .then(
+                async (x) =>
+                  await x
+                    .wait()
+                    .then((r) => {
+                      console.log(r);
+                      setLoading(false);
+                    })
+                    .catch((e) => {
+                      console.log(e);
+                      setLoading(false);
+                    })
+              )
+              .catch((e) => {
+                console.log(e);
+                setLoading(false);
+              });
+        }}
+      >
+        Redeem Stable
+      </button>
     </section>
   );
 };
