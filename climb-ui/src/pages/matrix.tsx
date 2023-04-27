@@ -82,7 +82,7 @@ const MatrixData = () => {
           {commify(
             parseFloat(
               formatEther(md.climbPrice || BigNumber.from("0"))
-            ).toFixed(4)
+            ).toFixed(7)
           )}{" "}
         </span>
         <span className="text-white">$USD</span>
@@ -254,7 +254,7 @@ const StatsContainer = () => {
       </div>
       <div className="stats shadow">
         <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
-          <div className="stat-title font-bold text-accent">TVL</div>
+          <div className="stat-title font-bold text-accent">VAULT TVL</div>
           <div className="stat-value text-white">
             {commify(
               formatEther(
