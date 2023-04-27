@@ -30,8 +30,11 @@ import {
   usePrepareContractWrite,
 } from "wagmi";
 import { useRouter } from "next/router";
+import { hostname } from "os";
 
 const Home: NextPage = () => {
+  const { address } = useAccount();
+  const router = useRouter();
   return (
     <>
       <Head>
@@ -50,6 +53,28 @@ const Home: NextPage = () => {
         </h2>
         <StatsContainer />
         <ActionButtons />
+        <section className="flex flex-row items-center justify-center px-4 py-6">
+          <div className="card w-96 bg-secondary ">
+            <div className="card-body">
+              <h3 className=" w-full text-center text-2xl">
+                <strong>R</strong>eferral <strong>L</strong>ink
+              </h3>
+              <p>
+                Use the link below to invite your friends and receive 10%
+                commission every time they invest or Reinvest.
+              </p>
+              <a
+                href={address ? `/matrix?ref=${address}` : "about:blank"}
+                target="_blank"
+                className="break-all underline underline-offset-4"
+              >
+                {!address
+                  ? "Connect Wallet to get Referral Link"
+                  : `https://binancewealthmatrix.com/matrix?ref=${address}`}
+              </a>
+            </div>
+          </div>
+        </section>
         <Footer />
       </main>
     </>
