@@ -30,11 +30,9 @@ import {
   usePrepareContractWrite,
 } from "wagmi";
 import { useRouter } from "next/router";
-import { hostname } from "os";
 
 const Home: NextPage = () => {
   const { address } = useAccount();
-  const router = useRouter();
   return (
     <>
       <Head>
