@@ -1,5 +1,5 @@
 import { type AppType } from "next/dist/shared/lib/utils";
-import { Roboto } from "@next/font/google";
+import { Roboto } from "next/font/google";
 
 import "@/styles/globals.css";
 

@@ -262,7 +262,7 @@ const StatsContainer = () => {
   const md = useAtomValue(matrixData);
   const userClaim = useAtomValue(userClaimable);
   return (
-    <section className="container mx-auto flex w-full flex-row flex-wrap justify-center gap-x-6 gap-y-6 pb-8">
+    <section className="container mx-auto flex w-full max-w-2xl flex-row flex-wrap justify-center gap-x-6 gap-y-6 pb-8">
       <div className="stats shadow">
         <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
           <div className="stat-title font-bold text-accent">Total Invested</div>
@@ -289,6 +289,26 @@ const StatsContainer = () => {
               .join(".")}
           </div>
           <div className="stat-desc">USD</div>
+        </div>
+      </div>
+      <div className="stats shadow">
+        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+          <div className="stat-title font-bold text-accent">
+            Referral Rewards
+          </div>
+          <div className="stat-value text-white">
+            {commify(
+              formatEther(
+                userClaim.claimable
+                  .mul(userInfo.referralEggs)
+                  .div(userInfo.allEggs.isZero() ? 1 : userInfo.allEggs)
+              )
+            )
+              .split(".")
+              .map((x, i) => (i === 1 ? x.slice(0, 4) : x))
+              .join(".")}
+          </div>
+          <div className="stat-desc">CLIMB</div>
         </div>
       </div>
       <div className="stats shadow">

@@ -42,6 +42,8 @@ export const userData = atom({
   totalInvested:  BigNumber.from(0),
   miners: BigNumber.from(0),
   totalRedeemed: BigNumber.from(0),
+  referralEggs: BigNumber.from(0),
+  allEggs: BigNumber.from(1),
 })
 
 export const userClaimable = atom({
@@ -151,6 +153,8 @@ export const useMatrixFetchData = () => {
             totalInvested: data[0].totalInvested,
             miners: data[0].miners,
             totalRedeemed: data[0].totalRedeemed,
+            referralEggs: data[0].eggsToClaim,
+            allEggs: data[1],
           })
       }
     })
