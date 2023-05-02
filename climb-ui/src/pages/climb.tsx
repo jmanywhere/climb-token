@@ -82,10 +82,12 @@ const ClimbPage: NextPage = () => {
             PTR (sells):
           </h3>
           <p className="max-w-4xl whitespace-pre-wrap text-justify">
-            When CLIMB is sold back to the contract, the seller pays the same 5%
-            tax on the asset they receive. 99% of the tokens sold are then
-            destroyed and completely removed from the total supply. As a result,
-            the total supply of CLIMB decreases, and the seller receives:
+            When CLIMB is sold back to the contract, the seller pays the same{" "}
+            <span className="text-primary">5%</span>&nbsp;tax on the asset they
+            receive. <span className="text-primary">99%</span> of the tokens
+            sold are then destroyed and completely removed from the total
+            supply. As a result, the total supply of CLIMB decreases, and the
+            seller receives:
             {"\n\n"}
           </p>
           <code>
@@ -105,11 +107,11 @@ const ClimbPage: NextPage = () => {
             functionality, return on investment, and security of investment for
             the end user.{"\n\n"}All owner functions within the contracts are
             renounced except one, and that is the ability to change the taxes
-            from 5% to a lower percentage. This owner function gives the ability
-            to have promotions for marketing purposes offering entry into CLIMB
-            with a lower tax structure. There is no callable owner function
-            existing that can negatively affect the contract functionality or
-            value of assets.
+            from <span className="text-primary">5%</span> to a lower percentage.
+            This owner function gives the ability to have promotions for
+            marketing purposes offering entry into CLIMB with a lower tax
+            structure. There is no callable owner function existing that can
+            negatively affect the contract functionality or value of assets.
           </p>
           <h3 className="w-full max-w-4xl py-6 text-center text-lg font-bold uppercase text-primary">
             Explanation of why CLIMB will exist exclusively in the Binance
@@ -123,7 +125,8 @@ const ClimbPage: NextPage = () => {
             and hold. After perhaps an initial flurry of purchases upon launch,
             the price increases would stagnate relatively quickly.{"\n\n"}By
             making CLIMB exist only in the BWM, investors are given the
-            opportunity to reinvest or redeem up to 3% per day of their total
+            opportunity to reinvest or redeem up to{" "}
+            <span className="text-primary">3%</span> per day of their total
             investment.{"\n\n"}Whether reinvested or redeemed, each transaction
             within the BWM will increase the price of CLIMB. Eventually there
             could be hundreds if not thousands or tens of thousands of
