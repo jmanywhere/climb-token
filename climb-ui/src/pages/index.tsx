@@ -18,14 +18,21 @@ const Home: NextPage = () => {
       <main className="flex min-h-screen flex-col">
         <Header />
         <div className=" flex h-full w-full flex-1 flex-col items-center justify-center">
-          <Image
-            src="/assets/Head.png"
-            alt="BWM Head logo"
-            height={865 / 3}
-            width={651 / 3}
-          />
+          <div className="flex flex-col items-center justify-center md:flex-row">
+            <Image
+              src="/assets/Logo.png"
+              alt="BWM Logo"
+              height={200}
+              width={200}
+            />
+            <h1 className="whitespace-pre-wrap pl-4 text-6xl font-bold uppercase tracking-widest text-primary">
+              B<span className="text-yellow-500">inance</span>
+              {"\n"}W<span className="text-white">ealth</span>
+              {"\n"}M<span className="text-white">atrix</span>
+            </h1>
+          </div>
           <div className="text-2xl font-bold text-primary">
-            Relaunching Soon!
+            Launching on May 13th, 2023
           </div>
         </div>
         <Footer />
