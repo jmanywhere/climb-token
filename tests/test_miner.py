@@ -210,13 +210,13 @@ def test_reinvest(initialized_setup):
     # for an exact + 1 miner it's +273s, however since we're takig
     chain.mine(deltatime=288)
     supply_before = climb.totalSupply()
-    dev_before = usdt.balanceOf(climb.owner())
+    dev_before = climb.balanceOf(climb.owner())
     # User 2 Reinvests in matrix
     matrix.reinvestInMatrix(user2.address, sender=user2)
     miner_2_after_reinvest = matrix.user(user2.address)
     assert miner_2_after_reinvest["miners"] == miner2["miners"] + 1
     assert supply_before > climb.totalSupply()
-    assert dev_before < usdt.balanceOf(climb.owner())
+    assert dev_before < climb.balanceOf(climb.owner())
 
     # Do this reinvestment every 6 hours 20 times
     for x in range(0, 20):

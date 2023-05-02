@@ -121,9 +121,7 @@ contract BinanceWealthMatrix is Ownable, ReentrancyGuard {
         fee -= dFee;
 
         CLIMB.burn(fee);
-        uint stableGoal = CLIMB.calculatePrice();
-        stableGoal = (dFee * stableGoal) / 1 ether;
-        _sellEggs(stableGoal, dFee, feeReceiver);
+        CLIMB.transfer(feeReceiver, dFee);
         // boost market to nerf miners hoarding
         // Actual eggs value reinvested
         emit Reinvest(msg.sender, eggsValue);
