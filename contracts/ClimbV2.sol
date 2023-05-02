@@ -66,10 +66,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     mapping(address => bool) public isFeeExempt;
 
     // volume for each recipient
-    mapping(address => uint256) _volumeFor;
-
-    // token purchase slippage maximum
-    uint256 public _tokenSlippage = 995;
+    mapping(address => uint256) private _volumeFor;
 
     // Activates Token Trading
     bool Token_Activated;
@@ -82,7 +79,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
     /// 5. emit Events
     constructor(address[] memory _stables, address _dev) {
         dev = _dev;
-        // fee exempt this + owner + router for LP injection
+        // fee exempt this + owner
         isFeeExempt[address(this)] = true;
         isFeeExempt[msg.sender] = true;
 
@@ -584,7 +581,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
 
     /** Excludes Contract From Fees */
     function setFeeExemption(address Contract, bool exempt) external onlyOwner {
-        require(Contract != address(0));
+        require(Contract != address(0), "Invalid address");
         isFeeExempt[Contract] = exempt;
         emit SetFeeExemption(Contract, exempt);
     }
@@ -594,16 +591,9 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         address newMatrix,
         bool exempt
     ) external onlyOwner {
-        require(newMatrix != address(0));
+        require(newMatrix != address(0), "Invalid address");
         isMatrix[newMatrix] = exempt;
         emit SetMatrixContract(newMatrix, exempt);
-    }
-
-    /** Updates The Threshold To Trigger The Garbage Collector */
-    function changeTokenSlippage(uint256 newSlippage) external onlyOwner {
-        require(newSlippage <= 995, "invalid slippage");
-        _tokenSlippage = newSlippage;
-        emit UpdateTokenSlippage(newSlippage);
     }
 
     /** Updates The devShare and liquidityShare */
@@ -620,7 +610,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
 
     /** Updates The dev Address */
     function updateDevAddress(address newDev) external onlyOwner {
-        require(newDev != address(0));
+        require(newDev != address(0), "No address zero");
         dev = newDev;
         emit UpdateDevAddress(newDev);
     }
@@ -651,7 +641,6 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         Stable storage stable = stables[_stable];
         require(stable.accepted != _accept, "Already set");
         stable.accepted = _accept;
-        IERC20Metadata stableToken = IERC20Metadata(_stable);
         if (!_accept && stable.setup) {
             // If deleted && setup
             if (currentStables[0] == _stable) {
@@ -669,6 +658,7 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
             stable.setup = false;
             stable.accepted = false;
         } else if (_accept && !stable.setup) {
+            IERC20Metadata stableToken = IERC20Metadata(_stable);
             // If added && not setup
             stable.index = uint8(currentStables.length);
             currentStables.push(_stable);
@@ -699,7 +689,6 @@ contract ClimbTokenV2 is IClimb, ReentrancyGuard, Ownable {
         IERC20 fromToken = IERC20(_from);
         IERC20 toToken = IERC20(_to);
         uint fromBalance = fromToken.balanceOf(address(this));
-        uint toBalance = toToken.balanceOf(address(this));
         fromToken.approve(_router, fromBalance);
         address[] memory path = new address[](2);
         path[0] = _from;
