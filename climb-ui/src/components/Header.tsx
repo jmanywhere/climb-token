@@ -36,7 +36,7 @@ const Header = () => {
               router.asPath === "/"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden md:block"
+              "hidden text-sm md:block lg:text-base"
             )}
           >
             Home
@@ -47,7 +47,7 @@ const Header = () => {
               router.asPath === "/matrix"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden md:block"
+              "hidden text-sm md:block lg:text-base"
             )}
           >
             The Matrix
@@ -58,10 +58,10 @@ const Header = () => {
               router.asPath === "/climb"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden md:block"
+              "hidden text-sm md:block lg:text-base"
             )}
           >
-            $CLIMB Token
+            How Climb Works
           </Link>
           <Link
             href="/faq"
@@ -69,7 +69,7 @@ const Header = () => {
               router.asPath === "/faq"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden md:block"
+              "hidden text-sm md:block lg:text-base"
             )}
           >
             FAQ
@@ -127,7 +127,7 @@ const Header = () => {
               "my-1 w-full bg-primary/20 py-3 text-center"
             )}
           >
-            $CLIMB Token
+            How $CLIMB Works
           </Link>
           <Link
             href="/faq"

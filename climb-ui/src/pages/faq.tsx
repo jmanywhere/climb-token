@@ -169,23 +169,38 @@ const FaqPage: NextPage = () => {
             </li>
             <p className="py-4">
               Our dApp automatically converts CLIMB token back into BUSD or
-              Tether (USDT). 16. Are there other ways to earn income with
+              Tether (USDT).
+            </p>
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+              Are there other ways to earn income with
+            </li>
+            <p className="py-4">
               Binance Wealth Matrix? Yes. Each account is outfitted with its own
               personal referral code. Any time a new investor invests using your
               code, you will receive 10% of those funds back into your Vault.
               For those so motivated, the referral mechanism can generate
-              massive profits. 17. What does the future hold for Binance Wealth
-              Matrix? Having external revenue sources that feed BWM is
-              absolutely integral to long-term success. We&apos;ve already begun
-              efforts in that regard. dappd.net is a leading DeFi innovator and
-              at the forefront of Blockchain technology, specifically allowing
-              projects and project leaders early access. BWM has an exclusive
-              arrangement that will burn CLIMB each and every time a transaction
-              takes place on their platform. Estimated launch for this exciting
-              new tech is Q3 2023. The next evolution of BWM will see a gaming
-              function. All the pieces are in place for us to release a game for
-              our community that will further benefit Matrix investors. Look for
-              that in Q4 of 2023.
+              massive profits.
+            </p>
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+              17. What does the future hold for Binance Wealth Matrix?
+            </li>
+            <p className="py-4">
+              Having external revenue sources that feed BWM is absolutely
+              integral to long-term success. We&apos;ve already begun efforts in
+              that regard.
+              {"\n\n"}
+              <a className="text-primary underline" href="https://dappd.net">
+                dappd.net
+              </a>{" "}
+              is a leading DeFi innovator and at the forefront of Blockchain
+              technology, specifically allowing projects and project leaders
+              early access. BWM has an exclusive arrangement that will burn
+              CLIMB each and every time a transaction takes place on their
+              platform. Estimated launch for this exciting new tech is Q3 2023.
+              The next evolution of BWM will see a gaming function. All the
+              pieces are in place for us to release a game for our community
+              that will further benefit Matrix investors. Look for that in Q4 of
+              2023.
             </p>
           </ol>
         </div>
