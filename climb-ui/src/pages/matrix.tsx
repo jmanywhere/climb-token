@@ -113,9 +113,10 @@ const MatrixData = () => {
       <div className="py-2 text-center text-lg tracking-wide">
         <span className=" font-semibold text-primary">Launched:</span>
         <span className="px-4 text-white">
-          {formatDistanceToNow(new Date(md.launchDate * 1000), {
+          {/* {formatDistanceToNow(new Date(md.launchDate * 1000), {
             addSuffix: true,
-          })}
+          })} */}
+          PENDING
         </span>
       </div>
       <Deposit />
