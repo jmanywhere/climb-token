@@ -9,18 +9,18 @@ import { parseEther } from 'ethers/lib/utils.js'
 export const minerAbi = MINERABI;
 
 
-export const testUSDT=  "0xb6D07D107FF8e26A21E497Bf64c3239101FED3Cf"
-export const testBUSD= "0xBe6DDd788b563807A0E60fE4EA6c06149c049735"
-export const climbToken = "0x8Bc8B21717b919903312555dF66B50c5F1976e8f"
-export const miner = "0x6B5655E37A6AD840EC081775C78b6ecE954fC64D"
+export const USDT=  "0x55d398326f99059fF775485246999027B3197955"
+export const BUSD= "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"
+export const climbToken = "0xE1a5ADD8401DFb161adb35D120CF15DBb81F0B1D"
+export const miner = "0x174B2958095665b9afdB52c8a5372547f5C1d8AF"
 
 export const tokens = {
   usdt: {
-    address: testUSDT,
+    address: USDT,
     decimals: 18,
   },
   busd: {
-    address: testBUSD,
+    address: BUSD,
     decimals: 18,
   }
 } as const
@@ -65,25 +65,25 @@ export const useMatrixFetchData = () => {
       contracts:[
         
         {
-          address: testUSDT,
+          address: USDT,
           abi: erc20ABI,
           functionName: 'balanceOf',
           args: [address || "0x0000000000000000000000000000000000000000"]
         },
         {
-          address: testBUSD,
+          address: BUSD,
           abi: erc20ABI,
           functionName: 'balanceOf',
           args: [address || "0x0000000000000000000000000000000000000000"]
         },
         {
-          address: testUSDT,
+          address: USDT,
           abi: erc20ABI,
           functionName: 'allowance',
           args: [address || "0x0000000000000000000000000000000000000000", miner]
         },
         {
-          address: testBUSD,
+          address: BUSD,
           abi: erc20ABI,
           functionName: 'allowance',
           args: [address || "0x0000000000000000000000000000000000000000", miner]

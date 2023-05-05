@@ -165,7 +165,7 @@ const Deposit = () => {
       ],
     });
 
-  const { write: approveSpend } = useContractWrite(prepareApprove);
+  const { writeAsync: approveSpend } = useContractWrite(prepareApprove);
   const { writeAsync: deposit } = useContractWrite(prepareDeposit);
 
   const isAllowed = allowances[tokenSelected]?.gt(
@@ -230,7 +230,10 @@ const Deposit = () => {
                       .finally(() => console.log("finally shit is done"));
                   return;
                 }
-                approveSpend && approveSpend();
+                approveSpend &&
+                  approveSpend()
+                    .catch((e) => console.log("error on spend", e))
+                    .finally(() => setLoading(false));
               }}
             >
               {isAllowed ? "Deposit" : "Approve"}
