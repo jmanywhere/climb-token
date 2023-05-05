@@ -31,9 +31,9 @@ contract BinanceWealthMatrix is Ownable, ReentrancyGuard {
     IOwnableClimb public immutable CLIMB;
     bool public initialized = false;
 
-    constructor(address _climbToken) {
+    constructor(address _climbToken, address _receiver) {
         CLIMB = IOwnableClimb(_climbToken);
-        feeReceiver = CLIMB.owner();
+        feeReceiver = _receiver;
     }
 
     // Invest with USDT
