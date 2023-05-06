@@ -27,7 +27,7 @@ const Home: NextPage = () => {
         <div className=" sparks-bg flex w-full flex-col items-center">
           <div className="flex flex-col items-center">
             <Image
-              src="/assets/Homepage Logo.png"
+              src="/assets/Home Page Logo.png"
               alt="BWM Logo"
               height={1080 / 2.5}
               width={1920 / 2.5}
