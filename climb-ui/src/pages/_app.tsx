@@ -1,5 +1,5 @@
 import { type AppType } from "next/dist/shared/lib/utils";
-import { Roboto } from "next/font/google";
+import { Roboto, Red_Hat_Mono } from "next/font/google";
 
 import "@/styles/globals.css";
 
@@ -32,9 +32,15 @@ const roboto = Roboto({
   subsets: ["latin"],
 });
 
+const redHatMono = Red_Hat_Mono({
+  weight: ["400", "500", "700"],
+  subsets: ["latin"],
+  variable: "--font-red-hat-mono",
+});
+
 const MyApp: AppType = ({ Component, pageProps }) => {
   return (
-    <>
+    <div className={`${redHatMono.variable}`}>
       <style jsx global>
         {`
           html {
@@ -50,7 +56,7 @@ const MyApp: AppType = ({ Component, pageProps }) => {
         ethereumClient={ethereumClient}
         themeMode="dark"
       />
-    </>
+    </div>
   );
 };
 

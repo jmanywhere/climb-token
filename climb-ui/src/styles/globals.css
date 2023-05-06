@@ -12,7 +12,7 @@
 
 @layer utilities{
   .sparks-bg{
-    background: url('/assets/sparks.svg') top center no-repeat;
+    background:url('/assets/sparks.svg') center center no-repeat;
     background-size: cover;
   }
 }

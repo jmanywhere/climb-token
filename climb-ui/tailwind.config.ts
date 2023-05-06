@@ -4,7 +4,11 @@ import daisy from "daisyui";
 export default {
   content: ["./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily:{
+        mono: [ `var(--font-red-hat-mono)`]
+      }
+    },
   },
   daisyui:{
     base: false,

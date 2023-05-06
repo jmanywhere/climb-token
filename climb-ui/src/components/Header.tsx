@@ -4,15 +4,21 @@ import { useRouter } from "next/router";
 import { Web3Button } from "@web3modal/react";
 import classNames from "classnames";
 import { RxHamburgerMenu } from "react-icons/rx";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMatrixFetchData } from "@/data/matrixAtoms";
 
 const Header = () => {
   const router = useRouter();
   const [showNav, setShowNav] = useState(false);
+  const isHome = useMemo(() => router.asPath === "/", [router.asPath]);
   useMatrixFetchData();
   return (
-    <header className="bg-black/20 px-6 py-4">
+    <header
+      className={classNames(
+        isHome ? "bg-transparent" : "bg-black/20",
+        " px-6 py-4"
+      )}
+    >
       <div className="container mx-auto flex flex-row items-center justify-between">
         <nav className="flex flex-row items-center gap-x-6 text-lg">
           <button className="md:hidden">
@@ -21,7 +27,12 @@ const Header = () => {
               onClick={() => setShowNav((p) => !p)}
             />
           </button>
-          <div className="flex flex-row items-center text-2xl font-bold text-primary">
+          <div
+            className={classNames(
+              "flex flex-row items-center text-2xl font-bold text-primary",
+              isHome ? "hidden" : "block"
+            )}
+          >
             <Image
               src="/assets/Logo.png"
               height={1920 / 10}
@@ -36,7 +47,8 @@ const Header = () => {
               router.asPath === "/"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden text-sm md:block lg:text-base"
+              "hidden md:block",
+              isHome ? "text-base lg:text-lg" : "text-sm lg:text-base"
             )}
           >
             Home
@@ -47,7 +59,8 @@ const Header = () => {
               router.asPath === "/matrix"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden text-sm md:block lg:text-base"
+              "hidden md:block",
+              isHome ? "text-base lg:text-lg" : "text-sm lg:text-base"
             )}
           >
             The Matrix
@@ -58,7 +71,8 @@ const Header = () => {
               router.asPath === "/climb"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden text-sm md:block lg:text-base"
+              "hidden md:block",
+              isHome ? "text-base lg:text-lg" : "text-sm lg:text-base"
             )}
           >
             How Climb Works
@@ -69,7 +83,8 @@ const Header = () => {
               router.asPath === "/faq"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden text-sm md:block lg:text-base"
+              "hidden md:block",
+              isHome ? "text-base lg:text-lg" : "text-sm lg:text-base"
             )}
           >
             FAQ
