@@ -105,8 +105,11 @@ const MatrixData = () => {
           {commify(
             parseFloat(
               formatEther(md.climbPrice || BigNumber.from("0"))
-            ).toFixed(7)
-          )}{" "}
+            ).toFixed(10)
+          )
+            .split(".")
+            .map((v, i) => (i == 1 && parseInt(v) == 0 ? "0000000000" : v))
+            .join(".")}{" "}
         </span>
         <span className="text-white">$USD</span>
       </div>

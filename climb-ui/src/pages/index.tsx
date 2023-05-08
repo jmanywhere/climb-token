@@ -83,15 +83,18 @@ const ClimbPriceShow = () => {
       <h2 className="text-center text-2xl tracking-wider">
         CLIMB starting price: <span className="text-primary">$ 1.00</span>
       </h2>
-      <h3 className="text-center text-2xl tracking-wider">
-        CLIMB current price:{" "}
+      <h3 className="whitespace-pre-wrap text-center text-2xl tracking-wider sm:whitespace-normal">
+        CLIMB current price:{"\n"}
         <span className="text-primary">
           ${" "}
           {commify(
             parseFloat(
               formatEther(md.climbPrice || BigNumber.from("0"))
-            ).toFixed(7)
-          )}
+            ).toFixed(10)
+          )
+            .split(".")
+            .map((v, i) => (i == 1 && parseInt(v) == 0 ? "0000000000" : v))
+            .join(".")}
         </span>
       </h3>
     </>
