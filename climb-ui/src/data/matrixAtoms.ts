@@ -27,7 +27,7 @@ export const tokens = {
 export const matrixData = atom({
   climbPrice: BigNumber.from(0),
   matrixClimbBalance: BigNumber.from(0),
-  launchDate: 1683950452000,
+  launchDate: 1683993652000,
 })
 
 export const tokenBalances = atom({
@@ -123,7 +123,7 @@ export const useMatrixFetchData = () => {
         setMD({
           matrixClimbBalance: data[0],
           climbPrice: data[1],
-          launchDate: 1683950452000,
+          launchDate: 1683993652000,
         })
       }
       
