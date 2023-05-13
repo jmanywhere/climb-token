@@ -28,7 +28,7 @@ export const tokens = {
 export const matrixData = atom({
   climbPrice: BigNumber.from(0),
   matrixClimbBalance: BigNumber.from(0),
-  launchDate: 1682526508,
+  launchDate: 1683950452,
 })
 
 export const tokenBalances = atom({
