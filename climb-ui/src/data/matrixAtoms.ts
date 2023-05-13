@@ -1,10 +1,9 @@
 import { useEffect } from 'react'
 import { BigNumber, constants } from 'ethers'
-import { atom, useAtom, useSetAtom } from 'jotai'
+import { atom, useSetAtom } from 'jotai'
 import { erc20ABI, useAccount, useContractReads } from 'wagmi'
 import {abi as CLIMBABI} from "@/abi/Climb"
 import {abi as MINERABI} from "@/abi/Miner"
-import { parseEther } from 'ethers/lib/utils.js'
 
 export const minerAbi = MINERABI;
 
@@ -28,7 +27,7 @@ export const tokens = {
 export const matrixData = atom({
   climbPrice: BigNumber.from(0),
   matrixClimbBalance: BigNumber.from(0),
-  launchDate: 1683950452,
+  launchDate: 1683950452000,
 })
 
 export const tokenBalances = atom({
@@ -124,7 +123,7 @@ export const useMatrixFetchData = () => {
         setMD({
           matrixClimbBalance: data[0],
           climbPrice: data[1],
-          launchDate: 1682526508,
+          launchDate: 1683950452000,
         })
       }
       

@@ -62,6 +62,7 @@ const Home: NextPage = () => {
                 commission every time they invest or Reinvest.
               </p>
               <a
+                suppressHydrationWarning
                 href={address ? `/matrix?ref=${address}` : "about:blank"}
                 target="_blank"
                 className="break-all underline underline-offset-4"
@@ -115,8 +116,8 @@ const MatrixData = () => {
       </div>
       <div className="py-2 text-center text-lg tracking-wide">
         <span className=" font-semibold text-primary">Launched:</span>
-        <span className="px-4 text-white">
-          {formatDistanceToNow(new Date(md.launchDate * 1000), {
+        <span className="px-4 text-white" suppressHydrationWarning>
+          {formatDistanceToNow(new Date(md.launchDate), {
             addSuffix: true,
           })}
         </span>
