@@ -21,7 +21,7 @@ import { type NextPage } from "next";
 import Head from "next/head";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { BigNumber } from "@ethersproject/bignumber";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import {
   erc20ABI,
@@ -268,6 +268,37 @@ const StatsContainer = () => {
   const userInfo = useAtomValue(userData);
   const md = useAtomValue(matrixData);
   const userClaim = useAtomValue(userClaimable);
+  const [currentTime, setCurrentTime] = useState(new Date().getTime());
+  useEffect(() => {
+    const interval = setInterval(
+      () => setCurrentTime(new Date().getTime()),
+      1000
+    );
+    return () => clearInterval(interval);
+  }, [setCurrentTime]);
+
+  const formattedDifference = useMemo(() => {
+    const maxTime = userInfo.lastAction.add(12 * 3600 * 1000);
+    if (maxTime.lte(currentTime)) return "Claim or Reinvest now";
+
+    let difference = maxTime.sub(currentTime);
+    const hours = difference.div(3600 * 1000);
+    difference = difference.sub(hours.mul(3600 * 1000));
+    const minutes = difference.div(60 * 1000);
+    difference = difference.sub(minutes.mul(60 * 1000));
+    const seconds = difference.div(1000);
+
+    return (
+      <span className="text-2xl font-normal">
+        {hours.gt(9) ? hours.toString() : `0${hours.toString()}`}
+        <sub>h</sub>&nbsp;
+        {minutes.gt(9) ? minutes.toString() : `0${minutes.toString()}`}
+        <sub>m</sub>&nbsp;
+        {seconds.gt(9) ? seconds.toString() : `0${seconds.toString()}`}
+        <sub>s</sub>
+      </span>
+    );
+  }, [userInfo.lastAction, currentTime]);
   return (
     <section className="container mx-auto flex w-full max-w-2xl flex-row flex-wrap justify-center gap-x-6 gap-y-6 pb-8">
       <div className="stats shadow">
@@ -356,6 +387,12 @@ const StatsContainer = () => {
           <div className="stat-desc">MAX CLIMB every 12 hours</div>
         </div>
       </div>
+      {userInfo.lastAction.gt(0) && (
+        <div className="whitespace-pre-wrap font-bold">
+          Time until max:{"\n"}
+          {formattedDifference}
+        </div>
+      )}
     </section>
   );
 };
