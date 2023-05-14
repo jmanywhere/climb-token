@@ -19,7 +19,7 @@ const Footer = () => {
       </div>
       <div>
         <a
-          href="https://t.me/BinanceWealthMatrix"
+          href="https://twitter.com/BinanceWM"
           target="_blank"
           rel="noreferrer"
           className="flex min-w-[208px] flex-row items-center justify-between gap-x-4 whitespace-pre-wrap rounded-xl border-2 border-primary px-4 py-3 font-mono hover:bg-primary hover:text-black"
