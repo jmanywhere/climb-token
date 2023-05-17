@@ -9,6 +9,8 @@ import {
   w3mProvider,
 } from "@web3modal/ethereum";
 import { Web3Modal } from "@web3modal/react";
+import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
+import { publicProvider } from "wagmi/providers/public";
 import { configureChains, createClient, WagmiConfig } from "wagmi";
 import { bsc } from "wagmi/chains";
 
@@ -19,7 +21,15 @@ if (!projectId) {
   throw new Error("Missing WalletConnect project ID");
 }
 
-const { provider } = configureChains(chains, [w3mProvider({ projectId })]);
+const { provider } = configureChains(chains, [
+  publicProvider(),
+  w3mProvider({ projectId }),
+  jsonRpcProvider({
+    rpc: () => ({
+      http: "https://bscrpc.com",
+    }),
+  }),
+]);
 const wagmiClient = createClient({
   autoConnect: true,
   connectors: w3mConnectors({ projectId, version: 1, chains }),
