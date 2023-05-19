@@ -115,6 +115,24 @@ const MatrixData = () => {
         <span className="text-white">$USD</span>
       </div>
       <div className="py-2 text-center text-lg tracking-wide">
+        <span className=" font-semibold text-primary">Min Reward Deposit:</span>
+        <span className="px-4 font-semibold text-white/80">
+          {commify(
+            parseFloat(
+              formatEther(
+                md.climbPrice
+                  .mul(md.minForRewards || BigNumber.from("0"))
+                  .div(parseEther("1")) || BigNumber.from("0")
+              )
+            ).toFixed(5)
+          )
+            .split(".")
+            .map((v, i) => (i == 1 && parseInt(v) == 0 ? "0000000000" : v))
+            .join(".")}{" "}
+        </span>
+        <span className="text-white/80">$USD</span>
+      </div>
+      <div className="py-2 text-center text-lg tracking-wide">
         <span className=" font-semibold text-primary">Launched:</span>
         <span className="px-4 text-white" suppressHydrationWarning>
           {formatDistanceToNow(new Date(md.launchDate), {
@@ -228,9 +246,11 @@ const Deposit = () => {
                       })
                       .catch((e) => {
                         console.log("probably error", e);
-                        setLoading(false);
                       })
-                      .finally(() => console.log("finally shit is done"));
+                      .finally(() => {
+                        console.log("finally shit is done");
+                        setLoading(false);
+                      });
                   return;
                 }
                 approveSpend &&

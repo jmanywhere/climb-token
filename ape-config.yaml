@@ -27,7 +27,7 @@ hardhat:
     bsc:
       mainnet:
         upstream_provider: "https://bscrpc.com"
-        block_number: 26976870
+        block_number: 26975278
 test:
   gas:
     exclude:
