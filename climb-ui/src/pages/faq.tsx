@@ -172,17 +172,16 @@ const FaqPage: NextPage = () => {
               Tether (USDT).
             </p>
             <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
-              Are there other ways to earn income with
+              Are there other ways to earn income with Binance Wealth Matrix?
             </li>
             <p className="py-4">
-              Binance Wealth Matrix? Yes. Each account is outfitted with its own
-              personal referral code. Any time a new investor invests using your
-              code, you will receive 10% of those funds back into your Vault.
-              For those so motivated, the referral mechanism can generate
-              massive profits.
+              Yes. Each account is outfitted with its own personal referral
+              code. Any time a new investor invests using your code, you will
+              receive 10% of those funds back into your Vault. For those so
+              motivated, the referral mechanism can generate massive profits.
             </p>
             <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
-              17. What does the future hold for Binance Wealth Matrix?
+              What does the future hold for Binance Wealth Matrix?
             </li>
             <p className="py-4">
               Having external revenue sources that feed BWM is absolutely
@@ -197,10 +196,49 @@ const FaqPage: NextPage = () => {
               early access. BWM has an exclusive arrangement that will burn
               CLIMB each and every time a transaction takes place on their
               platform. Estimated launch for this exciting new tech is Q3 2023.
-              The next evolution of BWM will see a gaming function. All the
-              pieces are in place for us to release a game for our community
-              that will further benefit Matrix investors. Look for that in Q4 of
-              2023.
+              {"\n\n"}The next evolution of BWM will see a gaming function in Q4
+              2023 that will benefit investors as well as the ecosystem. In
+              addition, a line of NFTs will be introduced that burn CLIMB, as
+              well as add entry into our future gaming function.
+            </p>
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+              Is there a minimum investment required to enter the Matrix?
+            </li>
+            <p className="py-4">
+              Yes. The minimum investment required to generate rewards is shown
+              in our dApp. Please note, this minimum amount is required to be
+              invested EVERY SINGLE TIME you invest. If the minimum is $7.00
+              USD, for example, you must invest at least $7.00 at one time to
+              activate rewards.
+            </p>
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+              Why does the minimum investment amount keep rising?
+            </li>
+            <p className="py-4">
+              Due to CLIMB&apos;s appreciation, the minimum necessary to receive
+              rewards will necessarily go up.  Follow the dApp for guidance.
+            </p>
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+              I invested less than the minimum requirement to receive rewards.
+              {"\n"}
+              Can&apos;t I just make up the difference and invest what is
+              necessary to put me over the minimum?
+            </li>
+            <p className="py-4">
+              No, that is not possible. Rewards are only activated when a TX
+              over the minimum is conducted. You can&apos;t combine multiple TXs
+              in order to cross the minimum threshold required for rewards.
+            </p>
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+              If I deposit the minimum on my first TX to activate the rewards,
+              and I invest less than that the next time I decide to put new
+              money in, will the new money add to my rewards since I&apos;ve
+              previously activated them?
+            </li>
+            <p className="py-4">
+              No. Each individual investment must be at least the minimum shown
+              in the dApp. That number is constantly rising, so MAKE SURE you
+              verify the amount each time you invest.
             </p>
           </ol>
         </div>
