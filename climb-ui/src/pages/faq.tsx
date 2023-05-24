@@ -299,6 +299,25 @@ const FaqPage: NextPage = () => {
               in the dApp. That number is constantly rising, so MAKE SURE you
               verify the amount each time you invest.
             </p>
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
+              What should I do when the communal TVL is falling? Isn&apos;t that
+              bad? Shouldn&apos;t we always want the TVL to go up?
+            </li>
+            <p className="py-4">
+              NO! NOT in the BWM. The Matrix needs the communal TVL to have
+              peaks and valleys. The greater the TVL volatility, the more rapid
+              the price movement of CLIMB is.
+              {"\n"}
+              Remember, the supply of CLIMB is fungible. As tokens are redeemed,
+              or sold, this reduces the total supply which INCREASES price
+              impact on future trades.
+              {"\n"}
+              Your mindset must be that the BWM is a LONG TERM play. You want to
+              generate passive income over MONTHS and YEARS, and that means
+              redeeming a couple of times a month to pay expenses and withdraw
+              some profit. Expect to see many, many peaks and valleys in total
+              TVL. It&apos;s the way the ecosystem is designed to function.
+            </p>
           </ol>
         </div>
         <Footer />
