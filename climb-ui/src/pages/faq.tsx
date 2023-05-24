@@ -20,10 +20,10 @@ const FaqPage: NextPage = () => {
             BWM FAQ
           </h1>
           <ol
-            className="max-w-4xl list-decimal whitespace-pre-wrap text-justify"
+            className="max-w-4xl list-decimal whitespace-pre-wrap text-justify text-white/90"
             type="1"
           >
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               What is Binance Wealth Matrix?
             </li>
             <p className="py-4">
@@ -31,7 +31,7 @@ const FaqPage: NextPage = () => {
               first-of-its-kind passive income generator available only on the
               Binance Smart Chain (BSC).
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               What makes Binance Wealth Matrix unique?
             </li>
             <p className="py-4">
@@ -39,7 +39,7 @@ const FaqPage: NextPage = () => {
               we&apos;ve created an asset (CLIMB token) that rises every time
               it&apos;s transacted (investments, reinvestments and redemptions).
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               How does CLIMB token work?
             </li>
             <p className="py-4">
@@ -50,7 +50,7 @@ const FaqPage: NextPage = () => {
               every time it&apos;s transacted. Think of CLIMB token as a way to
               invest in a Stablecoin that earns you more Stablecoins.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Can I buy CLIMB token outside of the Binance Wealth Matrix?
             </li>
             <p className="py-4">
@@ -58,7 +58,7 @@ const FaqPage: NextPage = () => {
               use case is the Matrix, itself, and cannot be purchased via
               PancakeSwap.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Why can&apos;t I buy CLIMB token outside of the Matrix?
             </li>
             <p className="py-4">
@@ -68,7 +68,7 @@ const FaqPage: NextPage = () => {
               the earnings of all other investors. Only OUR investors should
               have the right to benefit from increases in CLIMB token.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Is CLIMB token safe?
             </li>
             <p className="py-4">
@@ -77,7 +77,7 @@ const FaqPage: NextPage = () => {
               USDT and BUSD. That means that for every dollar invested in CLIMB
               token, there is MORE THAN $1.00 in the smart contract.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Why is there no CLIMB chart?
             </li>
             <p className="py-4">
@@ -88,27 +88,86 @@ const FaqPage: NextPage = () => {
               TX, and the starting price is $1.00, so the price movement will be
               clearly visible.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               How often should I reinvest?
             </li>
             <p className="py-4">
               As often as possible, keeping in mind the gas fees. Frequent
               reinvesting compounds your earnings.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
-              What is my TVL?
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
+              Please explain the BWM dApp dashboard, what do all the numbers
+              mean?
             </li>
             <p className="py-4">
-              Your TVL (or Total Value Locked) is a snapshot of your total
-              investment value in USD relative to daily earnings. TVL rises by
-              investing, reinvesting, and the constant rise in the price of
-              CLIMB every TX. TVL falls if reinvesting occurs too infrequently
-              and/or redeeming too frequently. Regardless of TVL, daily
-              distributions are 3%. By increasing your TVL, however, future
-              payouts increase since that 3% will be of a larger number relative
-              to the total value of CLIMB in the contract.
+              Here&apos;s an in-depth look at the dashboard.
+              {"\n"}
+              <span className="font-bold text-primary-focus">
+                Total Invested:
+              </span>
+              {"\n"}
+              This number represents the total amount of CLIMB owned. Keep in
+              mind, this amount does not just include investments made, but also
+              any REINVESTED funds attained via referral distributions. For
+              example, if you purchased 200 CLIMB and attained an extra 100
+              CLIMB via referral revenue, your Total Invested would be 300
+              CLIMB.
+              {"\n"}
+              <span className="font-bold text-primary-focus">Vault TVL:</span>
+              {"\n"}
+              This number represents in USD the total locked value of your CLIMB
+              investment in US dollars.
+              <span className="font-bold text-primary-focus">
+                {"\n"}
+                Referral Rewards:
+              </span>
+              {"\n"}
+              Although this is self explanatory, it is worth noting that
+              referral rewards do not stack over time. For example, if you have
+              100 CLIMB visible in your referral rewards, the very next action
+              you take on the dApp will determine the fate of those rewards.
+              They will either be added to Total Invested if you reinvest, or
+              they will be added to Total Redemptions if redeemed.
+              {"\n"}
+              <span className="font-bold text-primary-focus">
+                Total Redemptions:
+              </span>
+              {"\n"}
+              This represents the total amount of CLIMB redeemed from the
+              Matrix.
+              {"\n"}
+              <span className="font-bold text-primary-focus">
+                Max Production:
+              </span>
+              {"\n"}
+              Max Production (MP) represents the maximum amount of CLIMB that
+              will be available for redemption after 12 hours.
+              {"\n"}
+              There are <em>MANY</em> factors that contribute to an
+              investor&apos;s MP amount.
+              {"\n"}
+              ON AVERAGE, the return is 1.5% every 12 hours. At any given time
+              that number can be HIGHER or LOWER than 1.5% every 12 hours.
+              {"\n"}
+              There are several factors that contribute to an investor&apos;s MP
+              amount.
+              {"\n"}
+              <ul className="list-disc pl-12">
+                <li>A rising communal TVL will generally yield higher MP</li>
+                <li>A falling communal TVL will generally yield lower MP</li>
+                <li>
+                  Frequent reinvesting helps raise MP during communal rises in
+                  TVL
+                </li>
+                <li>
+                  Frequent reinvesting helps reduce the rate of MP depreciation
+                  during communal reductions in communal TVL
+                </li>
+                <li>Frequent redeeming will lower MP</li>
+                <li>Steady referral income will raise MP</li>
+              </ul>
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Tokenomics that rely on transactional volume rarely work. What
               makes Binance Wealth Matrix different?
             </li>
@@ -120,7 +179,7 @@ const FaqPage: NextPage = () => {
               CLIMB token rises each and every time it&apos;s transacted,
               investors will see their value grow every single day.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               What happens if I immediately begin redeeming after investing?
             </li>
             <p className="py-4">
@@ -131,7 +190,7 @@ const FaqPage: NextPage = () => {
               ensures your income stream is sustainable month after month after
               month.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Can I redeem my entire investment all at once after entering the
               Binance Wealth Matrix?
             </li>
@@ -143,7 +202,7 @@ const FaqPage: NextPage = () => {
               frequently, increase TVL, and ensure future payouts increase over
               time.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Why does the Vault stop filling after 12 hours?
             </li>
             <p className="py-4">
@@ -152,7 +211,7 @@ const FaqPage: NextPage = () => {
               it&apos;s transacted by each investor MINIMALLY once every 12
               hours. Most investors will be reinvesting dozens of times per day.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               How can I possibly reinvest that often?
             </li>
             <p className="py-4">
@@ -164,14 +223,14 @@ const FaqPage: NextPage = () => {
               learn more. We are not affiliated with this company, we simply
               admire their product.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               What happens when redeeming?
             </li>
             <p className="py-4">
               Our dApp automatically converts CLIMB token back into BUSD or
               Tether (USDT).
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Are there other ways to earn income with Binance Wealth Matrix?
             </li>
             <p className="py-4">
@@ -180,7 +239,7 @@ const FaqPage: NextPage = () => {
               receive 10% of those funds back into your Vault. For those so
               motivated, the referral mechanism can generate massive profits.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               What does the future hold for Binance Wealth Matrix?
             </li>
             <p className="py-4">
@@ -201,7 +260,7 @@ const FaqPage: NextPage = () => {
               addition, a line of NFTs will be introduced that burn CLIMB, as
               well as add entry into our future gaming function.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Is there a minimum investment required to enter the Matrix?
             </li>
             <p className="py-4">
@@ -211,14 +270,14 @@ const FaqPage: NextPage = () => {
               USD, for example, you must invest at least $7.00 at one time to
               activate rewards.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Why does the minimum investment amount keep rising?
             </li>
             <p className="py-4">
               Due to CLIMB&apos;s appreciation, the minimum necessary to receive
               rewards will necessarily go up.  Follow the dApp for guidance.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               I invested less than the minimum requirement to receive rewards.
               {"\n"}
               Can&apos;t I just make up the difference and invest what is
@@ -229,7 +288,7 @@ const FaqPage: NextPage = () => {
               over the minimum is conducted. You can&apos;t combine multiple TXs
               in order to cross the minimum threshold required for rewards.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white">
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               If I deposit the minimum on my first TX to activate the rewards,
               and I invest less than that the next time I decide to put new
               money in, will the new money add to my rewards since I&apos;ve
