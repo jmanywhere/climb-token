@@ -78,6 +78,18 @@ const Header = () => {
             How Climb Works
           </Link>
           <Link
+            href="/soon"
+            className={classNames(
+              router.asPath === "/soon"
+                ? "font-semibold text-white "
+                : "text-gray-500 hover:text-primary/80",
+              "hidden md:block",
+              isHome ? "text-base lg:text-lg" : "text-sm lg:text-base"
+            )}
+          >
+            Roadmap
+          </Link>
+          <Link
             href="/faq"
             className={classNames(
               router.asPath === "/faq"
@@ -143,6 +155,17 @@ const Header = () => {
             )}
           >
             How $CLIMB Works
+          </Link>
+          <Link
+            href="/soon"
+            className={classNames(
+              router.asPath === "/soon"
+                ? "font-semibold text-white "
+                : "text-gray-400 hover:text-primary/80",
+              "my-1 w-full bg-primary/20 py-3 text-center"
+            )}
+          >
+            Roadmap
           </Link>
           <Link
             href="/faq"
