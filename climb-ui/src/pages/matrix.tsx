@@ -430,25 +430,25 @@ const StatsContainer = () => {
 const ActionButtons = () => {
   const setMatrixDeposit = useSetAtom(matrixDeposit);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { address } = useAccount();
-  const referral = isAddress(router.query.ref as string)
-    ? (router.query.ref as `0x${string}`)
-    : address || constants.AddressZero;
+  // const router = useRouter();
+  // const { address } = useAccount();
+  // const referral = isAddress(router.query.ref as string)
+  //   ? (router.query.ref as `0x${string}`)
+  //   : address || constants.AddressZero;
 
-  const { config: prepareCompound } = usePrepareContractWrite({
-    address: miner,
-    abi: minerAbi,
-    functionName: "reinvestInMatrix",
-    args: [referral],
-  });
+  // const { config: prepareCompound } = usePrepareContractWrite({
+  //   address: miner,
+  //   abi: minerAbi,
+  //   functionName: "reinvestInMatrix",
+  //   args: [referral],
+  // });
   const { config: prepareRedeem } = usePrepareContractWrite({
     address: miner,
     abi: minerAbi,
     functionName: "matrixRedeem",
   });
 
-  const { writeAsync: compound } = useContractWrite(prepareCompound);
+  // const { writeAsync: compound } = useContractWrite(prepareCompound);
   const { writeAsync: redeem } = useContractWrite(prepareRedeem);
 
   return (
