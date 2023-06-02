@@ -503,7 +503,7 @@ const ActionButtons = () => {
                       const parsedLogs = r.logs
                         .filter((log) => log.address.toLowerCase() === miner)
                         .map((log) => minerInterface.parseLog(log));
-
+                      console.log({ parsedLogs, allLogs: r.logs });
                       if (parsedLogs.length > 0 && parsedLogs[0]?.args) {
                         const recentlyWithdrawn = parsedLogs[0]
                           .args[1] as BigNumber;
