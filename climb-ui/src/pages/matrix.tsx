@@ -2,6 +2,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import {
   matrixData,
+  matrixDeposit,
   miner,
   minerAbi,
   tokenBalances,
@@ -10,13 +11,14 @@ import {
   userData,
 } from "@/data/matrixAtoms";
 import {
+  Interface,
   commify,
   formatEther,
   isAddress,
   parseEther,
 } from "ethers/lib/utils.js";
 import { constants } from "ethers";
-import { useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { type NextPage } from "next";
 import Head from "next/head";
 import formatDistanceToNow from "date-fns/formatDistanceToNow";
@@ -150,6 +152,7 @@ const acceptedTokens: AcceptedTokens[] = ["usdt", "busd"];
 
 const Deposit = () => {
   const [loading, setLoading] = useState(false);
+  const [eventAmount, setEventAmount] = useAtom(matrixDeposit);
 
   const router = useRouter();
   const { address } = useAccount();
@@ -167,6 +170,13 @@ const Deposit = () => {
       }, {}),
     [balances]
   );
+
+  useEffect(() => {
+    if (eventAmount > 0) {
+      setAmount(eventAmount);
+      setEventAmount(0);
+    }
+  }, [eventAmount, setEventAmount]);
 
   const { config: prepareApprove } = usePrepareContractWrite({
     address: tokens[tokenSelected].address,
@@ -418,6 +428,7 @@ const StatsContainer = () => {
 };
 
 const ActionButtons = () => {
+  const setMatrixDeposit = useSetAtom(matrixDeposit);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { address } = useAccount();
@@ -441,8 +452,8 @@ const ActionButtons = () => {
   const { writeAsync: redeem } = useContractWrite(prepareRedeem);
 
   return (
-    <section className="sparks-bg flex w-full flex-row items-center justify-center gap-x-10 px-4 py-6">
-      <button
+    <section className="sparks-bg flex w-full flex-col items-center justify-center gap-x-10 px-4 py-6">
+      {/* <button
         className={classNames(
           "btn-outline btn-primary btn",
           loading ? "btn-disabled loading" : ""
@@ -471,10 +482,10 @@ const ActionButtons = () => {
         }}
       >
         Reinvest $CLIMB
-      </button>
+      </button> */}
       <button
         className={classNames(
-          "btn-outline btn-accent btn",
+          "btn-primary btn",
           loading ? "btn-disabled loading" : ""
         )}
         onClick={() => {
@@ -486,8 +497,26 @@ const ActionButtons = () => {
                   await x
                     .wait()
                     .then((r) => {
-                      console.log(r);
+                      const minerInterface = new Interface(
+                        JSON.stringify(minerAbi)
+                      );
+                      const parsedLogs = r.logs
+                        .filter((log) => log.address.toLowerCase() === miner)
+                        .map((log) => minerInterface.parseLog(log));
+
+                      if (parsedLogs.length > 0 && parsedLogs[0]?.args) {
+                        const recentlyWithdrawn = parsedLogs[0]
+                          .args[1] as BigNumber;
+                        if (recentlyWithdrawn.gt(0))
+                          setMatrixDeposit(
+                            parseFloat(formatEther(recentlyWithdrawn))
+                          );
+                      }
                       setLoading(false);
+                      scrollTo({
+                        behavior: "smooth",
+                        top: 0,
+                      });
                     })
                     .catch((e) => {
                       console.log(e);
@@ -502,6 +531,9 @@ const ActionButtons = () => {
       >
         Redeem Stable
       </button>
+      <div className=" py-4 text-2xl">
+        Redeem. Invest. $CLIMB <span className="text-primary">faster</span>.
+      </div>
     </section>
   );
 };
