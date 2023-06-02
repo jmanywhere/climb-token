@@ -334,5 +334,11 @@ def test_buy_for(setup):
 
 
 def test_owner_functions(setup):
-    warnings.warn("Not implemented")
+    owner, usdt, busd, climb, user1, user2, user3, busd_whale, usdt_whale, dev = setup
+    with reverts("Ownable: caller is not the owner"):
+        climb.updateFees(30, 50, 50, sender=user1)
+    climb.updateFees(10, 30, 60, sender=owner)
+    assert climb.mintFee() == 30
+    assert climb.sellFee() == 10
+    assert climb.transferFee() == 60
     pass
