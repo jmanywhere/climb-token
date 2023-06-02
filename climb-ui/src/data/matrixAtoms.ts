@@ -8,10 +8,10 @@ import {abi as MINERABI} from "@/abi/Miner"
 export const minerAbi = MINERABI;
 
 
-export const USDT=  "0x55d398326f99059fF775485246999027B3197955"
-export const BUSD= "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"
-export const climbToken = "0xE1a5ADD8401DFb161adb35D120CF15DBb81F0B1D"
-export const miner = "0x174B2958095665b9afdB52c8a5372547f5C1d8AF"
+export const USDT=  "0x55d398326f99059fF775485246999027B3197955"//"0xb6D07D107FF8e26A21E497Bf64c3239101FED3Cf"
+export const BUSD= "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"//"0xBe6DDd788b563807A0E60fE4EA6c06149c049735"
+export const climbToken = "0xE1a5ADD8401DFb161adb35D120CF15DBb81F0B1D"//"0x8Bc8B21717b919903312555dF66B50c5F1976e8f"
+export const miner = "0x174B2958095665b9afdB52c8a5372547f5C1d8AF"//"0x6b5655e37a6ad840ec081775c78b6ece954fc64d"
 
 export const tokens = {
   usdt: {
@@ -23,6 +23,8 @@ export const tokens = {
     decimals: 18,
   }
 } as const
+
+export const matrixDeposit = atom(0) // this should always be a number. it'll override the current deposit button status if set. then it'll be set back to zero
 
 export const matrixData = atom({
   climbPrice: BigNumber.from(0),
