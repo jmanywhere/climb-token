@@ -318,6 +318,21 @@ const FaqPage: NextPage = () => {
               some profit. Expect to see many, many peaks and valleys in total
               TVL. It&apos;s the way the ecosystem is designed to function.
             </p>
+            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
+              I&apos;ve just redeemed less than the minimum amount required to
+              invest. What do I do now since I can&apos;t &quot;reinvest&quot;?
+            </li>
+            <p className="py-4">
+              Making the decision to transition to the redeem / invest
+              methodology was not easy. The tokenomics behind CLIMB were not
+              being utilized to full capacity, and hence the price rise has to
+              date been nowhere near where we would like it to be.
+              {"\n"}
+              We understand that the very small investor will not be able to
+              immediately invest after redeeming. The choice will be to redeem
+              until you&apos;ve accumulated enough to invest again, or add funds
+              so that the minimum is achieved.
+            </p>
           </ol>
         </div>
         <Footer />
