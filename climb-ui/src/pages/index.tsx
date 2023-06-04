@@ -10,6 +10,7 @@ import stack from "../../public/assets/highlights/stack.png";
 import triangle from "../../public/assets/highlights/triangle.png";
 import Head from "next/head";
 import Image from "next/image";
+import { RiExchangeBoxFill } from "react-icons/ri";
 
 const Home: NextPage = () => {
   return (
@@ -41,7 +42,7 @@ const Home: NextPage = () => {
         <section className="py-12">
           <ClimbPriceShow />
         </section>
-        <section className="flex flex-1 flex-col items-center justify-center gap-10 px-4 pb-12 md:flex-row">
+        <section className="flex flex-1 flex-col items-center justify-center gap-10 px-4 pb-12 lg:flex-row">
           <div className="flex h-[300px] w-[280px] flex-col items-center rounded-lg border-2 border-primary px-6 py-8 text-center">
             <div className="relative h-[160px] w-[180px]">
               <Image src={stack} alt="Our actions" fill />
@@ -64,6 +65,15 @@ const Home: NextPage = () => {
             </div>
             <h4 className="whitespace-pre-wrap pt-6 text-center tracking-wider">
               Passive income generator.{"\n"} Asset that never depreciates.
+            </h4>
+          </div>
+          <div className="flex h-[300px] w-[280px] flex-col items-center rounded-lg border-2 border-primary px-6 py-8 text-center">
+            <div className="relative flex h-[160px] flex-col items-center justify-center">
+              {/* <Image src={triangle} alt="Our offer" fill /> */}
+              <RiExchangeBoxFill className="animate-ping text-[100px] text-primary " />
+            </div>
+            <h4 className="whitespace-pre-wrap pt-6 text-center tracking-wider">
+              Money Market{"\n"}Coming soon.
             </h4>
           </div>
         </section>
