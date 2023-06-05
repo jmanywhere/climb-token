@@ -31,6 +31,7 @@ export const matrixData = atom({
   matrixClimbBalance: BigNumber.from(0),
   launchDate: 1683993652000,
   minForRewards: BigNumber.from(0),
+  mintFee: BigNumber.from(0),
 })
 
 export const tokenBalances = atom({
@@ -124,8 +125,12 @@ export const useMatrixFetchData = () => {
           abi: MINERABI,
           functionName: 'calculateEggSell',
           args: [BigNumber.from(2721600)]
-        
         },
+        {
+          address: climbToken,
+          abi: CLIMBABI,
+          functionName: 'mintFee',
+        }
         
       ],
       onSuccess(data){
@@ -136,6 +141,7 @@ export const useMatrixFetchData = () => {
           climbPrice: data[1],
           launchDate: 1683993652000,
           minForRewards: data[2],
+          mintFee: data[3],
         })
       }
       

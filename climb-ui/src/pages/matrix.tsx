@@ -88,9 +88,13 @@ const MatrixData = () => {
   const md = useAtomValue(matrixData);
   return (
     <section className="sparks-bg mb-2 w-full py-16">
-      <h1 className="pb-8 text-center text-4xl tracking-wide">
+      <h1 className="pb-2 text-center text-4xl tracking-wide">
         <strong>B</strong>inance <strong>W</strong>ealth <strong>M</strong>atrix
       </h1>
+      <h2 className="animate-pulse whitespace-pre-wrap pb-6 text-center text-2xl md:whitespace-normal">
+        Redeem. Invest.{"\n"}$CLIMB <span className="text-primary">faster</span>
+        .
+      </h2>
       <div className="py-2 text-center text-lg tracking-wide">
         <span className=" font-semibold text-primary">Matrix Balance:</span>
         <span className="px-4 font-semibold text-white underline">
@@ -162,6 +166,7 @@ const Deposit = () => {
   const [tokenSelected, setTokenSelected] = useState<AcceptedTokens>("usdt");
   const [amount, setAmount] = useState<number | "">("");
   const balances = useAtomValue(tokenBalances);
+  const matrixInfo = useAtomValue(matrixData);
 
   const allowances = useMemo(
     () =>
@@ -289,6 +294,11 @@ const Deposit = () => {
             <option value="busd">BUSD</option>
           </select>
         </div>
+        {(matrixInfo.mintFee || BigNumber.from("0")).eq(0) && (
+          <div className="animate-pulse py-6 text-center text-4xl text-primary">
+            <span className="font-bold">0%</span>Invest Tax!
+          </div>
+        )}
       </div>
     </>
   );
@@ -332,7 +342,7 @@ const StatsContainer = () => {
   return (
     <section className="container mx-auto flex w-full max-w-2xl flex-row flex-wrap justify-center gap-x-6 gap-y-6 pb-8">
       <div className="stats shadow">
-        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+        <div className="stat min-w-[260px] max-w-full bg-gradient-to-b from-primary to-accent to-90% sm:min-w-[320px]">
           <div className="stat-title font-bold text-accent">Total Invested</div>
           <div className="stat-value text-white">
             {commify(formatEther(userInfo.totalInvested))
@@ -344,7 +354,7 @@ const StatsContainer = () => {
         </div>
       </div>
       <div className="stats shadow">
-        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+        <div className="stat min-w-[260px] max-w-full bg-gradient-to-b from-primary to-accent to-90% sm:min-w-[320px]">
           <div className="stat-title font-bold text-accent">VAULT TVL</div>
           <div className="stat-value text-white">
             {commify(
@@ -360,7 +370,7 @@ const StatsContainer = () => {
         </div>
       </div>
       <div className="stats shadow">
-        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+        <div className="stat min-w-[260px] max-w-full bg-gradient-to-b from-primary to-accent to-90% sm:min-w-[320px]">
           <div className="stat-title font-bold text-accent">
             Referral Rewards
           </div>
@@ -380,7 +390,7 @@ const StatsContainer = () => {
         </div>
       </div>
       <div className="stats shadow">
-        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+        <div className="stat min-w-[260px] max-w-full bg-gradient-to-b from-primary to-accent to-90% sm:min-w-[320px]">
           <div className="stat-title font-bold text-accent">CLAIMABLE</div>
           <div className="stat-value text-white">
             {commify(formatEther(userClaim.claimable))
@@ -392,7 +402,7 @@ const StatsContainer = () => {
         </div>
       </div>
       <div className="stats shadow">
-        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+        <div className="stat min-w-[260px] max-w-full bg-gradient-to-b from-primary to-accent to-90% sm:min-w-[320px]">
           <div className="stat-title font-bold text-accent">
             Total Redemptions
           </div>
@@ -406,7 +416,7 @@ const StatsContainer = () => {
         </div>
       </div>
       <div className="stats shadow">
-        <div className="stat min-w-[320px] max-w-full bg-gradient-to-b from-primary to-accent to-90%">
+        <div className="stat min-w-[260px] max-w-full bg-gradient-to-b from-primary to-accent to-90% sm:min-w-[320px]">
           <div className="stat-title font-bold text-accent">Max Production</div>
           <div className="stat-value text-white">
             {commify(formatEther(userClaim.maxProduction))
@@ -533,8 +543,9 @@ const ActionButtons = () => {
       >
         Redeem Stable
       </button>
-      <div className=" py-4 text-2xl">
-        Redeem. Invest. $CLIMB <span className="text-primary">faster</span>.
+      <div className="animate-pulse whitespace-pre-wrap py-4 text-2xl md:whitespace-normal">
+        Redeem. Invest.{"\n"}$CLIMB <span className="text-primary">faster</span>
+        .
       </div>
     </section>
   );
