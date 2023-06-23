@@ -22,7 +22,12 @@ import {
   useContractWrite,
 } from "wagmi";
 import { AcceptedTokens, acceptedTokens } from "./matrix";
-import { marketAbi, marketData, moneyMarket } from "@/data/marketAtoms";
+import {
+  liquidatorImportantData,
+  marketAbi,
+  marketData,
+  moneyMarket,
+} from "@/data/marketAtoms";
 
 const MoneyMarketPage: NextPage = () => {
   return (
@@ -39,12 +44,7 @@ const MoneyMarketPage: NextPage = () => {
         <Header />
         <MarketTitle />
         <StatContainer />
-        <h3 className=" w-full text-center text-2xl">
-          <strong>L</strong>iquidations&nbsp;<strong>I</strong>nfo
-        </h3>
-        <p className=" w-full text-center text-2xl">
-          <strong>C</strong>oming&nbsp;<strong>S</strong>oon
-        </p>
+        <LiquidationSection />
         <Footer />
       </main>
     </>
@@ -56,6 +56,7 @@ export default MoneyMarketPage;
 const MarketTitle = () => {
   const md = useAtomValue(matrixData);
   const marketInfo = useAtomValue(marketData);
+  const liquidatorInfo = useAtomValue(liquidatorImportantData);
   return (
     <section className="sparks-bg mb-2 w-full py-16">
       <h1 className="pb-2 text-center text-4xl tracking-wide">
@@ -83,6 +84,12 @@ const MarketTitle = () => {
             .join(".")}{" "}
         </span>
         <span className="text-white">$USD</span>
+      </div>
+      <div className="py-2 text-center text-lg tracking-wide">
+        <span className=" font-semibold text-primary">Users in Market:</span>
+        <span className="px-4 font-semibold text-white underline">
+          {commify(liquidatorInfo.usersParticipating.toString())}
+        </span>
       </div>
       <Deposit />
     </section>
@@ -398,6 +405,52 @@ const StatContainer = () => {
             <div className="stat-desc">ROI</div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+};
+
+const LiquidationSection = () => {
+  const [tokenSelected, setTokenSelected] = useState<AcceptedTokens>("usdt");
+  const [usersSelected, setUsersSelected] = useState<string[]>([]);
+  const liquidatorInfo = useAtomValue(liquidatorImportantData);
+  const toLiquidate = useMemo(() => {
+    return liquidatorInfo.toLiquidate.filter(
+      (x) => x !== constants.AddressZero
+    );
+  }, [liquidatorInfo]);
+
+  console.log(toLiquidate, liquidatorInfo.toLiquidate);
+
+  return (
+    <section className="flex flex-col items-center justify-center">
+      <h3 className=" w-full text-center text-2xl">
+        <strong>L</strong>iquidations
+      </h3>
+      <p className="w-full max-w-sm px-2 py-4 text-center text-sm text-gray-400">
+        Earn a bit of cash by liquidating other users when they reach their
+        profit level. Earnings are based on the excedent of profit for a user.
+      </p>
+      <div>
+        Liquidate with:
+        <select
+          className="select ml-2 rounded-lg bg-secondary"
+          onChange={(e) => setTokenSelected(e.target.value as AcceptedTokens)}
+          value={tokenSelected}
+        >
+          <option value="usdt">USDT</option>
+          <option value="busd">BUSD</option>
+        </select>
+      </div>
+      <div className="pt-2 text-xs text-gray-400">
+        Token to receive for both USER and LIQUIDATOR
+      </div>
+      <div className="overflow-x-auto">
+        {toLiquidate.length > 0 ? null : (
+          <div className="py-12 text-center text-gray-400">
+            No liquidations available
+          </div>
+        )}
       </div>
     </section>
   );
