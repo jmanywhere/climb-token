@@ -10,6 +10,19 @@
   }
 }
 
+@layer components {
+  .main-progress{
+    @apply h-3;
+    appearance: none;
+    ::-webkit-progress-value{
+      @apply bg-primary rounded-full h-3;
+    }
+    ::-webkit-progress-bar{
+      @apply bg-slate-400/60 rounded-full h-3;
+    }
+  }
+}
+
 @layer utilities{
   .sparks-bg{
     background:url('/assets/sparks.svg') center center no-repeat;

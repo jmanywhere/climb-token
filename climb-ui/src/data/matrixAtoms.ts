@@ -4,6 +4,7 @@ import { atom, useSetAtom } from 'jotai'
 import { erc20ABI, useAccount, useContractReads } from 'wagmi'
 import {abi as CLIMBABI} from "@/abi/Climb"
 import {abi as MINERABI} from "@/abi/Miner"
+import { moneyMarket } from './marketAtoms'
 
 export const minerAbi = MINERABI;
 
@@ -39,6 +40,8 @@ export const tokenBalances = atom({
   usdtAllowance: BigNumber.from(0),
   busdBalance: BigNumber.from(0),
   busdAllowance: BigNumber.from(0),
+  busdMarketAllowance: BigNumber.from(0),
+  usdtMarketAllowance: BigNumber.from(0),
 })
 
 export const userData = atom({
@@ -92,6 +95,18 @@ export const useMatrixFetchData = () => {
           functionName: 'allowance',
           args: [address || "0x0000000000000000000000000000000000000000", miner]
         },
+        {
+          address: USDT,
+          abi: erc20ABI,
+          functionName: 'allowance',
+          args: [address || "0x0000000000000000000000000000000000000000", moneyMarket]
+        },
+        {
+          address: BUSD,
+          abi: erc20ABI,
+          functionName: 'allowance',
+          args: [address || "0x0000000000000000000000000000000000000000", moneyMarket]
+        },
       ],
       enabled: !!address,
       onSuccess(data){
@@ -102,6 +117,8 @@ export const useMatrixFetchData = () => {
           busdBalance: data[1],
           usdtAllowance: data[2],
           busdAllowance: data[3],
+          usdtMarketAllowance: data[4],
+          busdMarketAllowance: data[5],
         })
       }
       

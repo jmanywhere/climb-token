@@ -13,7 +13,7 @@ const Header = () => {
   const [showNav, setShowNav] = useState(false);
   const isHome = useMemo(() => router.asPath === "/", [router.asPath]);
   useMatrixFetchData();
-  // useMarketFetchData();
+  useMarketFetchData();
   return (
     <header
       className={classNames(

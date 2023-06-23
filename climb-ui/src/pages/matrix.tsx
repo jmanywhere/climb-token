@@ -151,8 +151,8 @@ const MatrixData = () => {
   );
 };
 
-type AcceptedTokens = "usdt" | "busd";
-const acceptedTokens: AcceptedTokens[] = ["usdt", "busd"];
+export type AcceptedTokens = "usdt" | "busd";
+export const acceptedTokens: AcceptedTokens[] = ["usdt", "busd"];
 
 const Deposit = () => {
   const [loading, setLoading] = useState(false);
