@@ -23,12 +23,6 @@ const Header = () => {
     >
       <div className="container mx-auto flex flex-row items-center justify-between">
         <nav className="flex flex-row items-center gap-x-6 text-lg">
-          <button className="lg:hidden">
-            <RxHamburgerMenu
-              className="text-2xl"
-              onClick={() => setShowNav((p) => !p)}
-            />
-          </button>
           <div
             className={classNames(
               "flex flex-row items-center text-2xl font-bold text-primary",
@@ -43,6 +37,12 @@ const Header = () => {
             />
             <div className="hidden md:block">BWM</div>
           </div>
+          <button>
+            <RxHamburgerMenu
+              className="text-2xl"
+              onClick={() => setShowNav((p) => !p)}
+            />
+          </button>
           <Link
             href="/"
             className={classNames(
@@ -67,7 +67,7 @@ const Header = () => {
           >
             The Matrix
           </Link>
-          <Link
+          {/* <Link
             href="/climb"
             className={classNames(
               router.asPath === "/climb"
@@ -78,8 +78,8 @@ const Header = () => {
             )}
           >
             How Climb Works
-          </Link>
-          <Link
+          </Link> */}
+          {/* <Link
             href="/soon"
             className={classNames(
               router.asPath === "/soon"
@@ -90,6 +90,18 @@ const Header = () => {
             )}
           >
             Roadmap
+          </Link> */}
+          <Link
+            href="/money-market"
+            className={classNames(
+              router.asPath === "/money-market"
+                ? "font-semibold text-white "
+                : "text-gray-500 hover:text-primary/80",
+              "hidden md:block",
+              isHome ? "text-base lg:text-lg" : "text-sm lg:text-base"
+            )}
+          >
+            Money Market
           </Link>
           <Link
             href="/faq"
@@ -109,7 +121,7 @@ const Header = () => {
       <div
         className={classNames(
           showNav ? "left-0" : "-left-full",
-          "fixed bottom-0 top-0 z-20 flex w-full bg-black/20 backdrop-blur-sm transition-all duration-200 ease-in-out lg:hidden"
+          "fixed bottom-0 top-0 z-20 flex w-full bg-black/20 backdrop-blur-sm transition-all duration-200 ease-in-out"
         )}
         onClick={(e) => {
           e.preventDefault();
@@ -118,7 +130,7 @@ const Header = () => {
       >
         <nav
           className={classNames(
-            "flex w-[70%] flex-col bg-base-100 transition-all duration-300 ease-in-out"
+            "flex w-[70%] max-w-sm flex-col bg-base-100 transition-all duration-300 ease-in-out"
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -135,6 +147,17 @@ const Header = () => {
             )}
           >
             Home
+          </Link>
+          <Link
+            href="/climb"
+            className={classNames(
+              router.asPath === "/climb"
+                ? "font-semibold text-white "
+                : "text-gray-400 hover:text-primary/80",
+              "my-1 w-full bg-primary/20 py-3 text-center"
+            )}
+          >
+            How $CLIMB Works
           </Link>
           <Link
             href="/matrix"
@@ -158,17 +181,7 @@ const Header = () => {
           >
             Money Market
           </Link>
-          <Link
-            href="/climb"
-            className={classNames(
-              router.asPath === "/climb"
-                ? "font-semibold text-white "
-                : "text-gray-400 hover:text-primary/80",
-              "my-1 w-full bg-primary/20 py-3 text-center"
-            )}
-          >
-            How $CLIMB Works
-          </Link>
+
           <Link
             href="/soon"
             className={classNames(
