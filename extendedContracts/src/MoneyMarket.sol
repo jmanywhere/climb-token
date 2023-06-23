@@ -357,4 +357,26 @@ contract MoneyMarket is Ownable {
         }
         return usersAvailForLiquidation;
     }
+
+    /**
+     * Get all the available amount to be extracted from users by liquidating them from the pool
+     * @param liquidableUsers The users to calculate the available liquidation from
+     */
+    function getAvailableLiquidationFromUsers(
+        address[] calldata liquidableUsers
+    ) external view returns (uint) {
+        uint totalLiquidation = 0;
+        uint climbPrice = climb.calculatePrice();
+        for (uint i = 0; i < liquidableUsers.length; i++) {
+            User memory user = users[liquidableUsers[i]];
+            if (user.depositAmount == 0 || climbPrice < user.endPrice) continue;
+            totalLiquidation +=
+                (user.climbAmount * climbPrice * 95) /
+                100 ether;
+            totalLiquidation -=
+                (user.climbAmount * user.endPrice * 95) /
+                100 ether;
+        }
+        return totalLiquidation;
+    }
 }
