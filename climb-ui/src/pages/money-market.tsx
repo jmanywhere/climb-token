@@ -1,10 +1,10 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import {
+  BUSD,
+  USDT,
   matrixData,
   matrixDeposit,
-  miner,
-  minerAbi,
   tokenBalances,
   tokens,
 } from "@/data/matrixAtoms";
@@ -15,13 +15,8 @@ import { useAtom, useAtomValue } from "jotai";
 import type { NextPage } from "next";
 import Head from "next/head";
 import { useState, useMemo, useEffect } from "react";
-import {
-  useAccount,
-  usePrepareContractWrite,
-  erc20ABI,
-  useContractWrite,
-} from "wagmi";
-import { AcceptedTokens, acceptedTokens } from "./matrix";
+import { usePrepareContractWrite, erc20ABI, useContractWrite } from "wagmi";
+import { type AcceptedTokens, acceptedTokens } from "./matrix";
 import {
   liquidatorImportantData,
   marketAbi,
@@ -281,28 +276,73 @@ const Deposit = () => {
 const MarketSelfLiquidate = () => {
   const marketInfo = useAtomValue(marketData);
   const matrixInfo = useAtomValue(matrixData);
+  const [loading, setLoading] = useState(false);
+  const [tokenSelected, setTokenSelected] = useState<AcceptedTokens>("usdt");
 
   const canClaim = useMemo(
     () => matrixInfo.climbPrice.gte(marketInfo.endPrice),
     [matrixInfo, marketInfo]
   );
 
+  const { config: prepareForce } = usePrepareContractWrite({
+    address: moneyMarket,
+    abi: marketAbi,
+    functionName: "forceSelfLiquidate",
+    args: [tokenSelected == "busd" ? BUSD : USDT],
+  });
+  const { writeAsync: forceLiquidate } = useContractWrite(prepareForce);
+
+  const { config: prepareRedeem } = usePrepareContractWrite({
+    address: moneyMarket,
+    abi: marketAbi,
+    functionName: "selfLiquidate",
+    args: [tokenSelected == "busd" ? BUSD : USDT],
+  });
+  const { writeAsync: redeem } = useContractWrite(prepareRedeem);
+
   return (
     <section className="flex flex-col items-center justify-center">
+      <div>
+        Liquidate with:
+        <select
+          className="select ml-2 rounded-lg bg-secondary"
+          onChange={(e) => setTokenSelected(e.target.value as AcceptedTokens)}
+          value={tokenSelected}
+        >
+          <option value="usdt">USDT</option>
+          <option value="busd">BUSD</option>
+        </select>
+      </div>
       <div className="flex flex-row items-center justify-center px-4 py-4">
         <button
           className={classNames(
             "btn-primary btn",
-            canClaim ? "" : "btn-disabled hidden"
+            canClaim ? "" : "btn-disabled hidden",
+            loading ? "btn-disabled loading" : ""
           )}
+          onClick={() => {
+            setLoading(true);
+            redeem &&
+              void redeem()
+                .catch((e) => console.log(e))
+                .finally(() => setLoading(false));
+          }}
         >
           Self Liquidate
         </button>
         <button
           className={classNames(
             "btn-warning btn",
-            canClaim ? "btn-disabled hidden" : ""
+            canClaim ? "btn-disabled hidden" : "",
+            loading ? "btn-disabled loading" : ""
           )}
+          onClick={() => {
+            setLoading(true);
+            forceLiquidate &&
+              void forceLiquidate()
+                .catch((e) => console.log(e))
+                .finally(() => setLoading(false));
+          }}
         >
           Force Liquidate
         </button>
