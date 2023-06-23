@@ -6,12 +6,14 @@ import classNames from "classnames";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { useMemo, useState } from "react";
 import { useMatrixFetchData } from "@/data/matrixAtoms";
+import { useMarketFetchData } from "@/data/marketAtoms";
 
 const Header = () => {
   const router = useRouter();
   const [showNav, setShowNav] = useState(false);
   const isHome = useMemo(() => router.asPath === "/", [router.asPath]);
   useMatrixFetchData();
+  // useMarketFetchData();
   return (
     <header
       className={classNames(
@@ -21,7 +23,7 @@ const Header = () => {
     >
       <div className="container mx-auto flex flex-row items-center justify-between">
         <nav className="flex flex-row items-center gap-x-6 text-lg">
-          <button className="md:hidden">
+          <button className="lg:hidden">
             <RxHamburgerMenu
               className="text-2xl"
               onClick={() => setShowNav((p) => !p)}
@@ -47,7 +49,7 @@ const Header = () => {
               router.asPath === "/"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden md:block",
+              "hidden lg:block",
               isHome ? "text-base lg:text-lg" : "text-sm lg:text-base"
             )}
           >
@@ -83,7 +85,7 @@ const Header = () => {
               router.asPath === "/soon"
                 ? "font-semibold text-white "
                 : "text-gray-500 hover:text-primary/80",
-              "hidden md:block",
+              "hidden lg:block",
               isHome ? "text-base lg:text-lg" : "text-sm lg:text-base"
             )}
           >
@@ -107,7 +109,7 @@ const Header = () => {
       <div
         className={classNames(
           showNav ? "left-0" : "-left-full",
-          "fixed bottom-0 top-0 z-20 flex w-full bg-black/20 backdrop-blur-sm transition-all duration-200 ease-in-out md:hidden"
+          "fixed bottom-0 top-0 z-20 flex w-full bg-black/20 backdrop-blur-sm transition-all duration-200 ease-in-out lg:hidden"
         )}
         onClick={(e) => {
           e.preventDefault();
@@ -144,6 +146,17 @@ const Header = () => {
             )}
           >
             The Matrix
+          </Link>
+          <Link
+            href="/money-market"
+            className={classNames(
+              router.asPath === "/money-market"
+                ? "font-semibold text-white "
+                : "text-gray-400 hover:text-primary/80",
+              "my-1 w-full bg-primary/20 py-3 text-center"
+            )}
+          >
+            Money Market
           </Link>
           <Link
             href="/climb"
