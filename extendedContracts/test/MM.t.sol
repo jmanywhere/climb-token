@@ -14,6 +14,7 @@ contract MMTest is Test {
     address USER_PREF = 0x4BE5ecc076C7DB235b97264D480dCc9C1a57dc7b;
     address USER_REG = makeAddr("user_reg");
     address LIQUIDATOR = makeAddr("liquidator");
+    address VOLUME_MAKER = makeAddr("volume_maker");
     address BUSD_WHALE = 0xF977814e90dA44bFA03b6295A0616a897441aceC;
     address USDT_WHALE = 0x8894E0a0c962CB723c1976a4421c95949bE2D4E3;
     address CLIMB_OWNER = 0x1D225C878f53f6E4846D29c37F4A4F7d69c3CDaC;
@@ -22,6 +23,11 @@ contract MMTest is Test {
     IERC20 BUSD = IERC20(0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56);
 
     event EarlyFeeTaken(address indexed user, uint indexed amountBurned);
+    event Liquidate(
+        address indexed _liquidatedUser,
+        address indexed _stableLiquidated,
+        uint indexed _liquidatedAmount
+    );
 
     function setUp() public {
         mm = new MoneyMarket(address(climb), address(bwm));
@@ -29,9 +35,11 @@ contract MMTest is Test {
         vm.startPrank(BUSD_WHALE);
         BUSD.transfer(USER_PREF, 100_000 ether);
         BUSD.transfer(USER_REG, 100_000 ether);
+        BUSD.transfer(VOLUME_MAKER, 100_000 ether);
         vm.startPrank(USDT_WHALE);
         USDT.transfer(USER_PREF, 100_000 ether);
         USDT.transfer(USER_REG, 100_000 ether);
+        USDT.transfer(VOLUME_MAKER, 100_000 ether);
         vm.startPrank(USER_PREF);
         BUSD.approve(address(mm), 100_000 ether);
         USDT.approve(address(mm), 100_000 ether);
@@ -170,5 +178,105 @@ contract MMTest is Test {
         assertEq(endPrice, 0);
         assertEq(_stable, address(0));
         assertEq(0, climb.balanceOf(address(mm)));
+    }
+
+    modifier depositAndProfit() {
+        vm.prank(USER_PREF);
+        mm.deposit(1000 ether, address(BUSD));
+        vm.prank(USER_REG);
+        mm.deposit(1000 ether, address(BUSD));
+
+        vm.prank(CLIMB_OWNER);
+        climb.setMatrixContract(VOLUME_MAKER, true);
+        vm.prank(address(bwm));
+        climb.sell(55000 ether, address(BUSD));
+        vm.startPrank(VOLUME_MAKER);
+        USDT.approve(address(climb), type(uint).max);
+        BUSD.approve(address(climb), type(uint).max);
+
+        for (uint i = 0; i < 10; i++) {
+            climb.buy(1000 ether, address(BUSD));
+            climb.sellAll(address(BUSD));
+        }
+        vm.stopPrank();
+
+        _;
+    }
+
+    function test_self_liquidation_with_profit() public depositAndProfit {
+        (uint initIndex, , , , uint endPrice, ) = mm.users(USER_REG);
+        uint currentPrice = climb.calculatePrice();
+        assertEq(initIndex, 1);
+
+        console.log("endPrice: %s, currentPrice: %s", endPrice, currentPrice);
+        assertGt(currentPrice, endPrice);
+
+        vm.expectRevert(MoneyMarket__UserHasProfit.selector);
+        vm.startPrank(USER_REG);
+        mm.forceSelfLiquidate(address(BUSD));
+
+        vm.expectEmit(true, true, false, false); // do not check topic 02 or data
+        emit Liquidate(USER_REG, address(BUSD), 1000 ether);
+        mm.selfLiquidate(address(BUSD));
+
+        vm.expectRevert(MoneyMarket__UserHasNoDeposit.selector);
+        mm.selfLiquidate(address(BUSD));
+
+        (
+            uint endIndex,
+            uint depositAmount,
+            uint climbAmount,
+            uint startingPrice,
+            uint _endPrice,
+            address _stable
+        ) = mm.users(USER_REG);
+
+        assertEq(endIndex, 0);
+        assertEq(depositAmount, 0);
+        assertEq(climbAmount, 0);
+        assertEq(startingPrice, 0);
+        assertEq(_endPrice, 0);
+        assertEq(_stable, address(0));
+        assertEq(mm.getTotalUsers(), 1);
+    }
+
+    function test_get_liquidated() public depositAndProfit {
+        (uint initIndex, , uint allocatedAmount, , uint endPrice, ) = mm.users(
+            USER_REG
+        );
+        uint currentPrice = climb.calculatePrice();
+        uint initBal = BUSD.balanceOf(USER_REG);
+        uint expectedReward = (allocatedAmount * endPrice * 95) / 100 ether;
+        vm.startPrank(LIQUIDATOR);
+        mm.liquidate(USER_REG, address(BUSD));
+        vm.expectRevert(MoneyMarket__UserHasNoProfit.selector);
+        mm.liquidate(USER_PREF, address(BUSD));
+
+        assertEq(
+            BUSD.balanceOf(LIQUIDATOR),
+            ((allocatedAmount * currentPrice * 95) / 100 ether) - expectedReward
+        );
+        // Check if the user got the reward disregarding rounding issues
+        assertGt(1000, BUSD.balanceOf(USER_REG) - (initBal + expectedReward));
+
+        (
+            ,
+            uint depositAmount,
+            uint climbAmount,
+            uint startingPrice,
+            uint _endPrice,
+            address _stable
+        ) = mm.users(USER_REG);
+        assertEq(initIndex, 1);
+        assertEq(depositAmount, 0);
+        assertEq(climbAmount, 0);
+        assertEq(startingPrice, 0);
+        assertEq(_endPrice, 0);
+        assertEq(_stable, address(0));
+        assertEq(mm.getTotalUsers(), 1);
+
+        vm.prank(USER_REG);
+        vm.expectRevert(MoneyMarket__UserHasNoDeposit.selector);
+        mm.selfLiquidate(address(BUSD));
     }
 }

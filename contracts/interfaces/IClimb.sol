@@ -17,6 +17,8 @@ interface IClimb is IERC20 {
         address stable
     ) external returns (uint stableReceived);
 
+    function sellAll(address _stable) external;
+
     // These functions are used to buy CLIMB with STABLE, STABLE will need to be approved for transfer in for this contract.
     function buy(uint256 numTokens, address stable) external returns (uint256);
 

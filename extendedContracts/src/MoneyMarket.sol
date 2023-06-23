@@ -140,6 +140,7 @@ contract MoneyMarket is Ownable {
 
     function liquidate(address _userToLiquidate, address _stable) external {
         uint liquidatorReward = _liquidateUser(_userToLiquidate, _stable);
+        IERC20(_stable).transfer(msg.sender, liquidatorReward);
         emit LiquidatorReward(msg.sender, liquidatorReward);
     }
 
@@ -151,6 +152,7 @@ contract MoneyMarket is Ownable {
         for (uint i = 0; i < _users.length; i++) {
             totalReward += _liquidateUser(_users[i], _stable);
         }
+        IERC20(_stable).transfer(msg.sender, totalReward);
         emit LiquidatorReward(msg.sender, totalReward);
     }
 
@@ -266,7 +268,7 @@ contract MoneyMarket is Ownable {
 
         stable.transfer(_user, expectedAmount);
 
-        users[msg.sender] = User(0, 0, 0, 0, 0, address(0));
+        users[_user] = User(0, 0, 0, 0, 0, address(0));
         emit Liquidate(_user, _stable, expectedAmount);
         return liquidationAmount;
     }
