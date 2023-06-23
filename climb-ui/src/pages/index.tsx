@@ -70,7 +70,7 @@ const Home: NextPage = () => {
           <div className="flex h-[300px] w-[280px] flex-col items-center rounded-lg border-2 border-primary px-6 py-8 text-center">
             <div className="relative flex h-[160px] flex-col items-center justify-center">
               {/* <Image src={triangle} alt="Our offer" fill /> */}
-              <RiExchangeBoxFill className="animate-ping text-[100px] text-primary " />
+              <RiExchangeBoxFill className=" text-[100px] text-primary " />
             </div>
             <h4 className="whitespace-pre-wrap pt-6 text-center tracking-wider">
               Money Market{"\n"}Coming soon.
