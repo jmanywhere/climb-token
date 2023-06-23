@@ -3,13 +3,14 @@
 pragma solidity 0.8.20;
 
 import "openzeppelin/token/ERC20/IERC20.sol";
+import "openzeppelin/access/Ownable.sol";
 import "./IClimb.sol";
 import "./IBinanceWealthMatrix.sol";
 
 //--------------------------------------------
 // Errors
 //--------------------------------------------
-error MoneyMarket__InvalidDepositAmount();
+error MoneyMarket__InvalidDepositAmount(uint deposited);
 error MoneyMarket__UserAlreadyHasDeposit();
 error MoneyMarket__InvalidStableAddress();
 error MoneyMarket__UserHasNoDeposit();
@@ -19,13 +20,14 @@ error MoneyMarket__MaxClimbAmountReached(
     uint _maxLimit,
     uint _amountToIncreaseTo
 );
+error MoneyMarket__InvalidProfitThresholds(uint _preferred, uint _regular);
 
 /**
  * @title BinanceWealthMatrix Money Market
  * @author Semi Invader
  * @notice This contract is made to give users the power to interact with the BWM Climb Token with expected rewards.
  */
-contract MoneyMarket {
+contract MoneyMarket is Ownable {
     //--------------------------------------------
     // Type Definitions
     //--------------------------------------------
@@ -35,7 +37,6 @@ contract MoneyMarket {
         uint climbAmount;
         uint startingPrice;
         uint endPrice;
-        uint expectedProfit;
         address preferredToken;
     }
     //----------------------------------------------
@@ -50,6 +51,7 @@ contract MoneyMarket {
     uint public PENALTY_FEE = 10;
     uint public BURN_FEE = 1;
     uint public MAX_CLIMB_IN_MARKET = 25;
+    uint public MIN_DEPOSIT = 100 ether;
     uint public minForPreferred = 500 ether; // 500$ worth of CLIMB invested
     uint private p_totalDeposits;
     uint private p_totalWithdrawals;
@@ -75,6 +77,10 @@ contract MoneyMarket {
         uint indexed _rewardAmount
     );
     event EarlyFeeTaken(address indexed _user, uint indexed _feeAmountInClimb);
+    event EditProfits(uint indexed _preferred, uint indexed _regular);
+    event EditFees(uint indexed _penalty, uint indexed _burn);
+    event EditMinDeposit(uint indexed _newDepositMin);
+    event EditThreshold(uint indexed _newThreshold);
 
     //----------------------------------------------
     // Constructor
@@ -92,7 +98,8 @@ contract MoneyMarket {
         (, , , bool accepted, ) = climb.stables(_stableAddress);
 
         if (!accepted) revert MoneyMarket__InvalidStableAddress();
-        if (_stableAmount == 0) revert MoneyMarket__InvalidDepositAmount();
+        if (_stableAmount < MIN_DEPOSIT || _stableAmount % 1 ether > 0)
+            revert MoneyMarket__InvalidDepositAmount(_stableAmount);
 
         User storage user = users[msg.sender];
 
@@ -119,6 +126,8 @@ contract MoneyMarket {
 
         uint burnAmount = (climbAmount * BURN_FEE) / PERCENTAGE;
         climbAmount -= burnAmount;
+        climb.burn(burnAmount);
+        user.climbAmount = climbAmount;
 
         user.endPrice = _calculateEndPrice(
             _stableAmount,
@@ -160,11 +169,11 @@ contract MoneyMarket {
         );
         p_totalWithdrawals += tokenAmount;
         _removeParticipant(user.participationIndex);
-        users[msg.sender] = User(0, 0, 0, 0, 0, 0, address(0));
+        users[msg.sender] = User(0, 0, 0, 0, 0, address(0));
         emit Liquidate(msg.sender, _preferredStable, tokenAmount);
     }
 
-    function forceLiquidate(address _preferredStable) external {
+    function forceSelfLiquidate(address _preferredStable) external {
         User storage user = users[msg.sender];
         if (user.depositAmount == 0) revert MoneyMarket__UserHasNoDeposit();
 
@@ -186,8 +195,35 @@ contract MoneyMarket {
         );
         p_totalWithdrawals += tokenAmount;
         _removeParticipant(user.participationIndex);
-        users[msg.sender] = User(0, 0, 0, 0, 0, 0, address(0));
+        users[msg.sender] = User(0, 0, 0, 0, 0, address(0));
         emit Liquidate(msg.sender, _preferredStable, tokenAmount);
+    }
+
+    function editProfitThresholds(
+        uint _newPreferred,
+        uint _newReg
+    ) external onlyOwner {
+        if (_newPreferred < _newReg)
+            revert MoneyMarket__InvalidProfitThresholds(_newPreferred, _newReg);
+        PREFERRED_PROFIT = _newPreferred;
+        REGULAR_PROFIT = _newReg;
+        emit EditProfits(_newPreferred, _newReg);
+    }
+
+    function editFee(uint _newPenalty, uint _newBurn) external onlyOwner {
+        PENALTY_FEE = _newPenalty;
+        BURN_FEE = _newBurn;
+        emit EditFees(_newPenalty, _newBurn);
+    }
+
+    function editMinDeposit(uint _newMinDepositAmount) external onlyOwner {
+        MIN_DEPOSIT = _newMinDepositAmount;
+        emit EditMinDeposit(_newMinDepositAmount);
+    }
+
+    function editMaxThreshold(uint _newThreshold) external onlyOwner {
+        MAX_CLIMB_IN_MARKET = _newThreshold;
+        emit EditThreshold(_newThreshold);
     }
 
     //----------------------------------------------
@@ -230,7 +266,7 @@ contract MoneyMarket {
 
         stable.transfer(_user, expectedAmount);
 
-        users[msg.sender] = User(0, 0, 0, 0, 0, 0, address(0));
+        users[msg.sender] = User(0, 0, 0, 0, 0, address(0));
         emit Liquidate(_user, _stable, expectedAmount);
         return liquidationAmount;
     }
@@ -286,7 +322,37 @@ contract MoneyMarket {
         uint investmentProfit = (investment * profit) / PERCENTAGE;
         investment += investmentProfit;
         return
-            (investment * (CLIMB_PERCENTAGE - sellFee)) /
-            (climbAmount * CLIMB_PERCENTAGE);
+            ((investment * CLIMB_PERCENTAGE) * 1 ether) /
+            (climbAmount * (CLIMB_PERCENTAGE - sellFee));
+    }
+
+    //----------------------------------------------
+    // External view functions
+    //----------------------------------------------
+
+    function getTotalUsers() external view returns (uint) {
+        return participants.length;
+    }
+
+    function getUsersAvailForLiquidation()
+        external
+        view
+        returns (address[] memory)
+    {
+        uint participantsLength = participants.length;
+        if (participantsLength == 0) return new address[](0);
+        address[] memory usersAvailForLiquidation = new address[](
+            participantsLength
+        );
+        uint indexOfInserts = 0;
+        for (uint i = 0; i < participantsLength; i++) {
+            User memory user = users[participants[i]];
+            if (user.depositAmount == 0) continue;
+            uint climbPrice = climb.calculatePrice();
+            if (climbPrice < user.endPrice) continue;
+            usersAvailForLiquidation[indexOfInserts] = participants[i];
+            indexOfInserts++;
+        }
+        return usersAvailForLiquidation;
     }
 }

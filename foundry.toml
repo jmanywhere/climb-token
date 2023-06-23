@@ -2,7 +2,7 @@
 src = "extendedContracts/src"
 out = "extendedContracts/out"
 test = "extendedContracts/test"
-libs = ["lib"]
+libs = ["lib", "extendedContracts/lib"]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 

@@ -62,6 +62,9 @@ interface IClimb is IERC20 {
         address _router
     ) external;
 
+    // owner functions
+    function setMatrixContract(address newMatrix, bool exempt) external;
+
     ///////////////////////////////////
     //////        EVENTS        ///////
     ///////////////////////////////////
