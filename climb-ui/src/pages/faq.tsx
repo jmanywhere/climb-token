@@ -19,6 +19,16 @@ const FaqPage: NextPage = () => {
           <h1 className="py-6 text-center text-4xl font-bold text-primary">
             BWM FAQ
           </h1>
+          <div className="pb-4 font-bold">
+            PLEASE NOTE THE FOLLOWING CHANGES EFFECTIVE IMMEDIATELY:
+            <ul className=" list-disc font-normal text-primary">
+              <li>THE INVESTMENT MINIMUM TO ENTER BWM IS NOW 100 CLIMB.</li>
+              <li>
+                5% TAX ON INVESTMENT, 5% TAX ON REDEMPTION, ZERO TAX ON
+                REINVESTING
+              </li>
+            </ul>
+          </div>
           <ol
             className="max-w-4xl list-decimal whitespace-pre-wrap text-justify text-white/90"
             type="1"
@@ -36,8 +46,8 @@ const FaqPage: NextPage = () => {
             </li>
             <p className="py-4">
               Using tools that are only available in Decentralized Finance,
-              we&apos;ve created an asset (CLIMB token) that rises every time
-              it&apos;s transacted (investments, reinvestments and redemptions).
+              we&apos;ve created an asset (CLIMB token) that rises whether
+              invested or redeemed.
             </p>
             <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               How does CLIMB token work?
@@ -95,7 +105,59 @@ const FaqPage: NextPage = () => {
               As often as possible, keeping in mind the gas fees. Frequent
               reinvesting compounds your earnings.
             </p>
-            <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
+            <QA question="What is Max Production?">
+              Your MP score dictates how much can be redeemed per 12-hour
+              period. This number rises and falls based on the investor&apos;s
+              reinvestment habits as well as the reinvestment habits of the
+              community.
+            </QA>
+            <QA question="What happens if I immediately begin redeeming after investing?">
+              Your MP will begin declining rapidly. This is bad. BWM is designed
+              for those looking to compound earnings and generate passive income
+              for the long term. The goal should be to redeem only when your TVL
+              is either flat or trending upwards.
+            </QA>
+            <QA question="Can I redeem my entire investment all at once after entering the Binance Wealth Matrix?">
+              No, as that would defeat the whole purpose of the Matrix. Money is
+              taken out over time. It&apos;s an AVERAGE of 1.5% per 12 hours.
+              This number can be much higher or lower depending on whether money
+              is flowing into, or out of, BWM.
+            </QA>
+            <QA question="Why does the Vault stop filling after 12 hours?">
+              This ensures the community will be proactive and reinvest at least
+              twice per day.
+            </QA>
+            <QA question="I would like to reinvest more often, but don't have the time.  Any help in that regard?">
+              One of our community members, Jimmy McMahon, has developed a
+              user-friendly script that will reinvest or redeem on a schedule of
+              your choosing. The cost is $40. 25% or $10 goes to the CLIMB burn
+              wallet on every purchase. Contact him directly on Telegram
+              at&nbsp;
+              <a
+                href="https://t.me/MadgeMcMahon"
+                rel="noopenner noreferrer"
+                target="_blank"
+                className="text-primary"
+              >
+                @MadgeMcMahon
+              </a>{" "}
+              for more information.
+            </QA>
+            <QA question="What happens when redeeming?">
+              Our dApp automatically converts CLIMB token back into BUSD or
+              Tether (USDT).
+            </QA>
+            <QA question="Are there other ways to earn income with Binance Wealth Matrix?">
+              Yes. Each account is outfitted with its own personal referral
+              code. Any time a new investor invests using your code, you will
+              receive 10% of those funds back into your Vault. For those so
+              motivated, the referral mechanism can generate massive profits.
+            </QA>
+            <QA question="What does the future hold for Binance Wealth Matrix?">
+              The latest marketing/partnership information will always be found
+              on our Telegram channel.
+            </QA>
+            {/* <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
               Please explain the BWM dApp dashboard, what do all the numbers
               mean?
             </li>
@@ -332,7 +394,7 @@ const FaqPage: NextPage = () => {
               immediately invest after redeeming. The choice will be to redeem
               until you&apos;ve accumulated enough to invest again, or add funds
               so that the minimum is achieved.
-            </p>
+            </p> */}
           </ol>
         </div>
         <Footer />
@@ -342,3 +404,14 @@ const FaqPage: NextPage = () => {
 };
 
 export default FaqPage;
+
+const QA = (props: { question: string; children: React.ReactNode }) => {
+  return (
+    <>
+      <li className="rounded-tr-2xl bg-slate-800 px-4 py-2 text-lg font-semibold text-primary marker:text-white/90">
+        {props.question}
+      </li>
+      <p className="py-4">{props.children}</p>
+    </>
+  );
+};

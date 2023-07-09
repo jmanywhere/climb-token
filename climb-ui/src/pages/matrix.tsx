@@ -126,9 +126,8 @@ const MatrixData = () => {
           {commify(
             parseFloat(
               formatEther(
-                md.climbPrice
-                  .mul(md.minForRewards || BigNumber.from("0"))
-                  .div(parseEther("1")) || BigNumber.from("0")
+                md.climbPrice.mul(parseEther("100")).div(parseEther("1")) ||
+                  BigNumber.from("0")
               )
             ).toFixed(5)
           )
@@ -167,6 +166,9 @@ const Deposit = () => {
   const [amount, setAmount] = useState<number | "">("");
   const balances = useAtomValue(tokenBalances);
   const matrixInfo = useAtomValue(matrixData);
+  const minDeposit = matrixInfo.climbPrice
+    .mul(parseEther("100"))
+    .div(parseEther("1"));
 
   const allowances = useMemo(
     () =>
@@ -199,84 +201,90 @@ const Deposit = () => {
         tokens[tokenSelected].address,
         parseEther((amount || "0").toString()),
       ],
+      enabled: minDeposit.lte(parseEther((amount || "0").toString())),
     });
 
   const { writeAsync: approveSpend } = useContractWrite(prepareApprove);
   const { writeAsync: deposit } = useContractWrite(prepareDeposit);
 
-  const isAllowed = allowances[tokenSelected]?.gt(
-    parseEther((amount || "0").toString())
-  );
+  const isAllowed = allowances[tokenSelected]?.gt(minDeposit);
   return (
     <>
       <div className="flex flex-col items-center justify-center px-4 py-4">
-        <div className="input-group max-w-sm rounded-xl bg-white">
-          <input
-            type="number"
-            placeholder="Enter amount"
-            className="input-bordered input w-full border-r-0 bg-white text-black"
-            onFocus={(e) => e.target.select()}
-            value={amount}
-            onChange={(e) => {
-              setAmount(e.target.valueAsNumber || "");
-            }}
-          />
-          <button
-            className="btn-ghost btn border-0 font-normal text-gray-500"
-            onClick={() =>
-              setAmount(
-                parseFloat(formatEther(balances[`${tokenSelected}Balance`]))
-              )
-            }
-          >
-            MAX
-          </button>
-          <span className="px-0">
-            <button
-              className={classNames(
-                "btn ",
-                " rounded-l-none",
-                isAllowed
-                  ? parseFloat(amount?.toString() || "0") > 0 &&
-                    !depositPrepareError
-                    ? "btn-primary"
-                    : "btn-disabled"
-                  : "btn-accent",
-                loading ? "loading" : ""
-              )}
-              onClick={() => {
-                setLoading(true);
-                if (isAllowed) {
-                  deposit &&
-                    void deposit()
-                      .then(async (x) => {
-                        await x
-                          .wait(2)
-                          .then((r) => {
-                            console.log("receipt", r);
-                            setAmount("");
-                            setLoading(false);
-                          })
-                          .catch((e) => console.log("error", e));
-                      })
-                      .catch((e) => {
-                        console.log("probably error", e);
-                      })
-                      .finally(() => {
-                        console.log("finally shit is done");
-                        setLoading(false);
-                      });
-                  return;
-                }
-                approveSpend &&
-                  approveSpend()
-                    .catch((e) => console.log("error on spend", e))
-                    .finally(() => setLoading(false));
+        <div className="form-control">
+          <div className="input-group max-w-sm rounded-xl bg-white">
+            <input
+              type="number"
+              placeholder="Enter amount"
+              className="input-bordered input w-full border-r-0 bg-white text-black"
+              onFocus={(e) => e.target.select()}
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.valueAsNumber || "");
               }}
+            />
+            <button
+              className="btn-ghost btn border-0 font-normal text-gray-500"
+              onClick={() =>
+                setAmount(
+                  parseFloat(formatEther(balances[`${tokenSelected}Balance`]))
+                )
+              }
             >
-              {isAllowed ? "Deposit" : "Approve"}
+              MAX
             </button>
-          </span>
+            <span className="px-0">
+              <button
+                className={classNames(
+                  "btn ",
+                  " rounded-l-none",
+                  isAllowed
+                    ? minDeposit.lte(parseEther((amount || 0).toString())) &&
+                      !depositPrepareError
+                      ? "btn-primary"
+                      : "btn-disabled"
+                    : "btn-accent",
+                  loading ? "loading" : ""
+                )}
+                onClick={() => {
+                  setLoading(true);
+                  if (isAllowed) {
+                    deposit &&
+                      void deposit()
+                        .then(async (x) => {
+                          await x
+                            .wait(2)
+                            .then((r) => {
+                              console.log("receipt", r);
+                              setAmount("");
+                              setLoading(false);
+                            })
+                            .catch((e) => console.log("error", e));
+                        })
+                        .catch((e) => {
+                          console.log("probably error", e);
+                        })
+                        .finally(() => {
+                          console.log("finally shit is done");
+                          setLoading(false);
+                        });
+                    return;
+                  }
+                  approveSpend &&
+                    approveSpend()
+                      .catch((e) => console.log("error on spend", e))
+                      .finally(() => setLoading(false));
+                }}
+              >
+                {isAllowed ? "Deposit" : "Approve"}
+              </button>
+            </span>
+          </div>
+          <label className="label">
+            <span className="label-text-alt">
+              Minimum Investment of {commify(formatEther(minDeposit))} USD
+            </span>
+          </label>
         </div>
         <div className="mt-4 rounded-xl border-2 border-secondary bg-base-100 pl-4 text-sm uppercase text-gray-200">
           Balance:&nbsp;
@@ -393,7 +401,7 @@ const StatsContainer = () => {
         <div className="stat min-w-[260px] max-w-full bg-gradient-to-b from-primary to-accent to-90% sm:min-w-[320px]">
           <div className="stat-title font-bold text-accent">CLAIMABLE</div>
           <div className="stat-value text-white">
-            {commify(formatEther(userClaim.claimable))
+            {commify(formatEther(userClaim.claimable.mul(95).div(100)))
               .split(".")
               .map((x, i) => (i === 1 ? x.slice(0, 4) : x))
               .join(".")}
@@ -419,7 +427,7 @@ const StatsContainer = () => {
         <div className="stat min-w-[260px] max-w-full bg-gradient-to-b from-primary to-accent to-90% sm:min-w-[320px]">
           <div className="stat-title font-bold text-accent">Max Production</div>
           <div className="stat-value text-white">
-            {commify(formatEther(userClaim.maxProduction))
+            {commify(formatEther(userClaim.maxProduction.mul(95).div(100)))
               .split(".")
               .map((x, i) => (i === 1 ? x.slice(0, 4) : x))
               .join(".")}
@@ -440,109 +448,111 @@ const StatsContainer = () => {
 const ActionButtons = () => {
   const setMatrixDeposit = useSetAtom(matrixDeposit);
   const [loading, setLoading] = useState(false);
-  // const router = useRouter();
-  // const { address } = useAccount();
-  // const referral = isAddress(router.query.ref as string)
-  //   ? (router.query.ref as `0x${string}`)
-  //   : address || constants.AddressZero;
+  const router = useRouter();
+  const { address } = useAccount();
+  const referral = isAddress(router.query.ref as string)
+    ? (router.query.ref as `0x${string}`)
+    : address || constants.AddressZero;
 
-  // const { config: prepareCompound } = usePrepareContractWrite({
-  //   address: miner,
-  //   abi: minerAbi,
-  //   functionName: "reinvestInMatrix",
-  //   args: [referral],
-  // });
+  const { config: prepareCompound } = usePrepareContractWrite({
+    address: miner,
+    abi: minerAbi,
+    functionName: "reinvestInMatrix",
+    args: [referral],
+  });
   const { config: prepareRedeem } = usePrepareContractWrite({
     address: miner,
     abi: minerAbi,
     functionName: "matrixRedeem",
   });
 
-  // const { writeAsync: compound } = useContractWrite(prepareCompound);
+  const { writeAsync: compound } = useContractWrite(prepareCompound);
   const { writeAsync: redeem } = useContractWrite(prepareRedeem);
 
   return (
     <section className="sparks-bg flex w-full flex-col items-center justify-center gap-x-10 px-4 py-6">
-      {/* <button
-        className={classNames(
-          "btn-outline btn-primary btn",
-          loading ? "btn-disabled loading" : ""
-        )}
-        onClick={() => {
-          setLoading(true);
-          compound &&
-            void compound()
-              .then(
-                async (x) =>
-                  await x
-                    .wait()
-                    .then((r) => {
-                      console.log(r);
-                      setLoading(false);
-                    })
-                    .catch((e) => {
-                      console.log(e);
-                      setLoading(false);
-                    })
-              )
-              .catch((e) => {
-                console.log(e);
-                setLoading(false);
-              });
-        }}
-      >
-        Reinvest $CLIMB
-      </button> */}
-      <button
-        className={classNames(
-          "btn-primary btn",
-          loading ? "btn-disabled loading" : ""
-        )}
-        onClick={() => {
-          setLoading(true);
-          redeem &&
-            void redeem()
-              .then(
-                async (x) =>
-                  await x
-                    .wait()
-                    .then((r) => {
-                      const minerInterface = new Interface(
-                        JSON.stringify(minerAbi)
-                      );
-                      const parsedLogs = r.logs
-                        .filter(
-                          (log) =>
-                            log.address.toLowerCase() === miner.toLowerCase()
-                        )
-                        .map((log) => minerInterface.parseLog(log));
-                      if (parsedLogs.length > 0 && parsedLogs[0]?.args) {
-                        const recentlyWithdrawn = parsedLogs[0]
-                          .args[1] as BigNumber;
-                        if (recentlyWithdrawn.gt(0))
-                          setMatrixDeposit(
-                            parseFloat(formatEther(recentlyWithdrawn))
-                          );
-                      }
-                      setLoading(false);
-                      scrollTo({
-                        behavior: "smooth",
-                        top: 0,
-                      });
-                    })
-                    .catch((e) => {
-                      console.log(e);
-                      setLoading(false);
-                    })
-              )
-              .catch((e) => {
-                console.log(e);
-                setLoading(false);
-              });
-        }}
-      >
-        Redeem Stable
-      </button>
+      <div className="flex flex-row items-center justify-center gap-x-4">
+        <button
+          className={classNames(
+            " btn-primary btn",
+            loading ? "btn-disabled loading" : ""
+          )}
+          onClick={() => {
+            setLoading(true);
+            compound &&
+              void compound()
+                .then(
+                  async (x) =>
+                    await x
+                      .wait()
+                      .then((r) => {
+                        console.log(r);
+                        setLoading(false);
+                      })
+                      .catch((e) => {
+                        console.log(e);
+                        setLoading(false);
+                      })
+                )
+                .catch((e) => {
+                  console.log(e);
+                  setLoading(false);
+                });
+          }}
+        >
+          Reinvest $CLIMB
+        </button>
+        <button
+          className={classNames(
+            "btn-primary btn",
+            loading ? "btn-disabled loading" : ""
+          )}
+          onClick={() => {
+            setLoading(true);
+            redeem &&
+              void redeem()
+                .then(
+                  async (x) =>
+                    await x
+                      .wait()
+                      .then((r) => {
+                        const minerInterface = new Interface(
+                          JSON.stringify(minerAbi)
+                        );
+                        const parsedLogs = r.logs
+                          .filter(
+                            (log) =>
+                              log.address.toLowerCase() === miner.toLowerCase()
+                          )
+                          .map((log) => minerInterface.parseLog(log));
+                        if (parsedLogs.length > 0 && parsedLogs[0]?.args) {
+                          const recentlyWithdrawn = parsedLogs[0]
+                            .args[1] as BigNumber;
+                          if (recentlyWithdrawn.gt(0))
+                            setMatrixDeposit(
+                              parseFloat(formatEther(recentlyWithdrawn))
+                            );
+                        }
+                        setLoading(false);
+                        scrollTo({
+                          behavior: "smooth",
+                          top: 0,
+                        });
+                      })
+                      .catch((e) => {
+                        console.log(e);
+                        setLoading(false);
+                      })
+                )
+                .catch((e) => {
+                  console.log(e);
+                  setLoading(false);
+                });
+          }}
+        >
+          Redeem Stable
+        </button>
+      </div>
       <div className="animate-pulse whitespace-pre-wrap py-4 text-2xl md:whitespace-normal">
         Redeem. Invest.{"\n"}$CLIMB <span className="text-primary">faster</span>
         .
